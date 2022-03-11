@@ -84,13 +84,13 @@ def main_camera_function(path, input_name, image_type):
 
 # Test code
 # Initiate values, for testing only
-"""
-parking_lot = "test_image"
-img_type = "std"
-runtime_variable = 0
-duration = 60
-# Execute main function!
-main_camera_function(parent_path, parking_lot, img_type, runtime_variable, duration)
-"""
+
+# parking_lot = "test_image"
+# img_type = "std"
+# runtime_variable = 0
+# duration = 60
+# # Execute main function!
+# main_camera_function(parent_path, parking_lot, img_type, runtime_variable, duration)
+
 # Notes:
 # Average capture time: around 1.5s/picture -> 40 pictures/minutes

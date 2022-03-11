@@ -6,10 +6,11 @@ import imutils
 import datetime
 
 import landmark_recognition
-# Get top working directory
 
-def image_calibration(parent_path, image_data, parklot_name, mode, filename, current_status, ref_x, ref_y, cur_x, cur_y):
-	# Initiate values
+
+def image_calibration(
+		parent_path, image_data, parklot_name, mode, filename, current_status, ref_x, ref_y, cur_x, cur_y
+):
 	# Initiate values
 	reference_x = []
 	reference_y = []
@@ -237,11 +238,17 @@ def image_calibration(parent_path, image_data, parklot_name, mode, filename, cur
 		# Debug:
 		# print("Process case = ", case)
 		# case = 0, 4 landmarks mode, calculation based on angle[1] and angle[4]
-		if case == 0:
-			angle[1] = rotate_angle(ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
-									reference_x[1], reference_y[1], current_x[1], current_y[1])
-			angle[4] = rotate_angle(ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
-									reference_x[4], reference_y[4], current_x[4], current_y[4])
+		# or
+		# case = 2 or case = 3, 3 landmarks mode, calculation based on angle[1] and angle[4]
+		if case == 0 or case == 2 or case == 3:
+			angle[1] = rotate_angle(
+				ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
+				reference_x[1], reference_y[1], current_x[1], current_y[1]
+			)
+			angle[4] = rotate_angle(
+				ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
+				reference_x[4], reference_y[4], current_x[4], current_y[4]
+			)
 			angle_final = round((angle[1] + angle[4]) / 2)
 			# If the current x[1] coordinate > reference x[1] coordinate, image has rotated clockwise, need to revert
 			# with a negative angle
@@ -250,25 +257,15 @@ def image_calibration(parent_path, image_data, parklot_name, mode, filename, cur
 		# Debug: Print angle[1], angle[4] & angle_final
 		# print(angle[1], angle[4])
 		# print(angle_final)
-		# case = 2 or case = 3, 3 landmarks mode, calculation based on angle[1] and angle[4]
-		if case == 2 or case == 3:
-			angle[1] = rotate_angle(ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
-									reference_x[1], reference_y[1], current_x[1], current_y[1])
-			angle[4] = rotate_angle(ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
-									reference_x[4], reference_y[4], current_x[4], current_y[4])
-			angle_final = round((angle[1] + angle[4]) / 2)
-			# If the current x[1] coordinate > reference x[1] coordinate, image has rotated clockwise, need to revert
-			# with a negative angle
-			if rotation_case(cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]) == "clockwise":
-				angle_final = -angle_final
-		# Debug: Print angle[1], angle[4] & angle_final
-		# print(angle[1], angle[4])
-		# print(angle_final)
 		if case == 1 or case == 4:
-			angle[2] = rotate_angle(ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
-									reference_x[2], reference_y[2], current_x[2], current_y[2])
-			angle[3] = rotate_angle(ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
-									reference_x[3], reference_y[3], current_x[3], current_y[3])
+			angle[2] = rotate_angle(
+				ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
+				reference_x[2], reference_y[2], current_x[2], current_y[2]
+			)
+			angle[3] = rotate_angle(
+				ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y,
+				reference_x[3], reference_y[3], current_x[3], current_y[3]
+			)
 			angle_final = round((angle[2] + angle[3]) / 2)
 			if rotation_case(cur_midpoint_x, cur_midpoint_y, current_x[2], current_y[2]) == "counter clockwise":
 				angle_final = -angle_final
@@ -300,7 +297,6 @@ def image_calibration(parent_path, image_data, parklot_name, mode, filename, cur
 		else:
 			print("Image is tilted too much, please check the camera")
 			print("The image will not be rotated")
-
 			rotate_image = shift_image
 
 		return rotate_image, angle_final
@@ -320,8 +316,9 @@ def image_calibration(parent_path, image_data, parklot_name, mode, filename, cur
 		# Avoid using static addresses, try using environment variable instead!
 		result_path = path + "\\data_process\\{}\\calib".format(parklot_name)              # Image save path
 		name = os.path.splitext(filename)[0]                            # Separate filename, remove the extension
-		cv2.imwrite(os.path.join(result_path, 'recov_{}_({}_{}_{}).jpg'.format(name, translation_x, translation_y,
-																				angle)), image_out)
+		cv2.imwrite(os.path.join(
+			result_path, 'recov_{}_({}_{}_{}).jpg'.format(name, translation_x, translation_y, angle)), image_out
+		)
 		# Log debug information
 		f_debug = open(path + "\\data_process\\{}\\debug.txt".format(parklot_name), 'a+')
 		f_debug.write("{}\n".format(datetime.datetime.now()))
@@ -329,14 +326,14 @@ def image_calibration(parent_path, image_data, parklot_name, mode, filename, cur
 		f_debug.write("Working case: {}\n".format(case))
 
 		if case != -1:
-			print(filename, " recovered")
+			print(filename, "recovered")
 			f_debug.write(filename + " recovered\n")
 		else:
 			# cv2.imwrite(os.path.join(result_path, 'not_recov_{}.jpg'.format(name)), cut)
 			print(filename, " not recovered, please check the camera/input")
 			f_debug.write(filename + " not recovered, please check the camera/input\n")
 		f_debug.write("\n")
-		print("")
+		# print("")
 
 	run_fl, run_md, cur_togg = case_switch_mode()
 	ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y = midpoint_calculate(run_fl, run_md, cur_togg)
@@ -344,10 +341,7 @@ def image_calibration(parent_path, image_data, parklot_name, mode, filename, cur
 
 	# Debug:
 	print("Working case:", r_case)
-	# print(reference_x)
-	# print(reference_y)
-	# print(current_x)
-	# print(current_y)
+
 	# Zoom out image
 	process_image = zoom_image(image_data)
 	if mode == 0:

@@ -9,8 +9,11 @@ im_lower = np.array([20, 110, 110], dtype='uint8')
 im_upper = np.array([35, 255, 255], dtype='uint8')
 kernel = np.ones((3, 3), np.uint8)
 
+
+# ----------------------------------------------------------------------------------------------------------------------
 # Define landmark recognition function
 def find_landmark(image_data):
+	# Initiate values
 	# Debug:
 	# print(address)
 	current_x = []
@@ -21,9 +24,6 @@ def find_landmark(image_data):
 		current_x.append(0)
 		current_y.append(0)
 		current_status.append(0)
-		
-	# Initiate values
-		
 
 	# Input image, create binary mask for contour recognition
 	image_copy = image_data.copy()
@@ -84,6 +84,8 @@ def find_landmark(image_data):
 		current_y[4] = 0
 
 	return current_status, current_x, current_y
+# ----------------------------------------------------------------------------------------------------------------------
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Get coordinate information from standard image log file
@@ -134,5 +136,4 @@ def get_coordinate_std_file(input_path, input_name):
 	# print(y_coord)
 
 	return x_coord, y_coord
-
 # ----------------------------------------------------------------------------------------------------------------------
