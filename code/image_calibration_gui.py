@@ -65,9 +65,8 @@ available_parking_lots, avail_lot_is_empty = folder_file_action.file_open_avail_
 reference_filename = ""
 previous_reference_filename = ""
 select_parking_lot = ""
-# Implement Undo/Redo actions within Define parking lot step
+# Implement Undo/Redo action queue, used Define parking lot step
 action_queue = deque()
-redo_queue = deque()
 
 # Create list of reference landmarks
 number_of_landmarks = 4     # Number of parking lot reference landmarks, typically 4 for best transformations
@@ -93,7 +92,7 @@ for i in range(0, number_of_landmarks + 1):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Threads management
-threads = []
+# threads = []
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -147,6 +146,7 @@ class exit_dialog(QDialog):
         self.yes_B.clicked.connect(self.closeEvent)
         self.no_B.clicked.connect(self.close_exit_prompt)
 
+        # Execute exit dialog
         self.exec_()
 
     # Overwrite closeEvent - Define behaviour on exit
@@ -257,7 +257,7 @@ class define_new_parkinglot(QMainWindow):
 
 # 2.2 > Process parking lot auto menu:
 class process_parkinglot_auto(QMainWindow):
-
+    # Initiate Process Parking Lot Auto Window on object creation
     def __init__(self):
         super(process_parkinglot_auto, self).__init__()
         uic.loadUi(gui_dir + '\\process-parking-lot-auto.ui', self)
@@ -286,7 +286,6 @@ class process_parkinglot_auto(QMainWindow):
         if parking_lot == "":
             self.noti_box.setText("")
             self.run_auto_B.setEnabled(False)
-            pass
         else:
             # print(parking_lot)
             data_path = "{}\\data_process\\{}".format(parent, parking_lot)
@@ -305,17 +304,13 @@ class process_parkinglot_auto(QMainWindow):
         temp_parking_lots = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), "r+")
         new_parking_lots = temp_parking_lots.read()
 
-        if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size == 0:
-            pass
-        else:
+        if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
             self.avail_parklot.addItem(new_parking_lots)
             # temp_parking_lots.truncate(0)
             temp_parking_lots.close()
 
     def delete_parking_lot(self, delete_name):
-        if delete_name == "":
-            pass
-        else:
+        if delete_name != "":
             delete_item = self.avail_parklot.findItems(delete_name, Qt.MatchContains)
             # print("Delete name: {}".format(delete_name))
             # print(delete_item)
@@ -328,13 +323,9 @@ class process_parkinglot_auto(QMainWindow):
         global ref_position_x, ref_position_y
         global reference_filename
 
-        if select_parking_lot == "":
-            pass
-        else:
+        if select_parking_lot != "":
             run_flag = window_show_result.get_landmark_coordinates(select_parking_lot)
-            if run_flag is False:
-                pass
-            else:
+            if run_flag:
                 window_show_result.image_calibration()
                 reference_image_container = "{}\\{}\\defined_parking_lot.txt".format(data_process_dir,
                                                                                      select_parking_lot)
@@ -406,9 +397,7 @@ class adjust_parking_lot(QMainWindow):
         global select_parking_lot
 
         delete_lot_name = self.avail_pl_list.currentItem().text()
-        if delete_lot_name == "":
-            pass
-        else:
+        if delete_lot_name != "":
             folder_file_action.remove_all_contents("{}\\data_process\\{}".format(parent, delete_lot_name))
             folder_file_action.file_clear_specific_content(parent, "available_parking_lot.txt", delete_lot_name)
             list_item = self.avail_pl_list.selectedItems()
@@ -439,9 +428,7 @@ class adjust_parking_lot(QMainWindow):
         temp_parking_lots = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), "r+")
         new_parking_lots = temp_parking_lots.read()
 
-        if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size == 0:
-            pass
-        else:
+        if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
             self.avail_pl_list.addItem(new_parking_lots)
             temp_parking_lots.truncate(0)
             temp_parking_lots.close()
@@ -556,6 +543,7 @@ class define_parking_lot(QMainWindow):
 
         self.back_B.clicked.connect(self.select_reference_image)
         self.next_B.clicked.connect(self.to_result)
+        self.next_B.setEnabled(False)
 
         self.undo_B.clicked.connect(self.undo_action)
         self.redo_B.clicked.connect(self.redo_action)
@@ -570,10 +558,7 @@ class define_parking_lot(QMainWindow):
 
         global reference_filename
 
-        if reference_filename == "":
-            # print("pass")
-            pass
-        else:
+        if reference_filename != "":
             input_image = cv2.imread(reference_filename)
             # cv2.imshow("Input image", input_image)
             # cv2.waitKey(1)
@@ -581,7 +566,7 @@ class define_parking_lot(QMainWindow):
             # print(self.image_disp.width(), self.image_disp.height())
             # cv2.imshow("Resized image", resized_image)
             # cv2.waitKey(1)
-            height, width, bytesPerComponent = resized_image.shape
+            height, width, bytes_per_component = resized_image.shape
             # print(height, width)
             bytes_per_line = 3 * width
             # print(bytes_per_line)
@@ -600,12 +585,17 @@ class define_parking_lot(QMainWindow):
             self.image_editor = image_painter(self.image_disp)
             self.image_editor.setCursor(QtCore.Qt.CrossCursor)
 
-            # print("pass set cursor")
-
             self.image_editor.update()
 
             # self.show()
             # reload_menu.cancel()
+    def enable_next_step(self):
+        if ref_position_x[1] != 0 and ref_position_x[2] != 0 and ref_position_x[3] != 0 and ref_position_x[4] != 0:
+            self.next_B.setEnabled(True)
+        else:
+            self.next_B.setEnabled(False)
+
+        return
 
     def get_landmark_index(self):
         global start_point_x, start_point_y, end_point_x, end_point_y
@@ -624,7 +614,9 @@ class define_parking_lot(QMainWindow):
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
 
-            print(self.listWidget.currentItem().text())
+        self.enable_next_step()
+
+        return
 
     def get_parking_slot_index(self):
         global number_of_slot
@@ -649,14 +641,12 @@ class define_parking_lot(QMainWindow):
             # print(ref_position_y[index])
 
             add_string = "Slot {}: {}, {}".format(slot_index,
-                                                          slot_position_x[slot_index],
-                                                          slot_position_y[slot_index]
-                                                          )
+                                                  slot_position_x[slot_index],
+                                                  slot_position_y[slot_index]
+                                                  )
             add_item = QListWidgetItem(add_string)
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
-
-            print(self.listWidget.currentItem().text())
 
     def text_manipulation(self):
         current_list_selection = self.listWidget.currentItem()
@@ -701,6 +691,8 @@ class define_parking_lot(QMainWindow):
                 slot_position_x[int(values[1])] = 0
                 slot_position_y[int(values[1])] = 0
 
+            self.enable_next_step()
+
         return
 
     def redo_action(self):
@@ -728,6 +720,10 @@ class define_parking_lot(QMainWindow):
                 slot_position_x[int(values[1])] = int((values[2].split(","))[0])
                 slot_position_y[int(values[1])] = int(values[3])
 
+        self.enable_next_step()
+
+        return
+
     @staticmethod
     def reset_action():
         reset_prompt()
@@ -738,9 +734,7 @@ class define_parking_lot(QMainWindow):
 
     @staticmethod
     def to_result():
-        if ref_position_x is None and slot_position_x is None:
-            pass
-        else:
+        if (ref_position_x is not None) and (slot_position_x is not None):
             write_landmarks = open("{}\\data_process\\{}\\landmarks.txt".format(parent, select_parking_lot),
                                    'w+')
             for index in range(1, 5):
@@ -773,12 +767,36 @@ class reset_prompt(QDialog):
 
         self.exec_()
 
-    @staticmethod
-    def reset_all_data():
-        pass
+    def reset_all_data(self):
+        global ref_position_x, ref_position_y
+        global slot_position_x, slot_position_y
+        global number_of_slot
+        global action_queue
+
+        # Reset reference position, but do not delete their members since they need to be persist
+        for index in range(1, 5):
+            ref_position_x[index] = 0
+            ref_position_y[index] = 0
+        # Reset slot position list, delete all members since it needs to be redefine if reset
+        slot_position_x.clear()
+        slot_position_y.clear()
+        number_of_slot = 0
+        # Reset action queue as well
+        action_queue.clear()
+
+        # Remove all entries that exist on the list
+        current_list_row = window_define_parking_lot.listWidget.currentRow()
+        while current_list_row >= 0:
+            window_define_parking_lot.listWidget.takeItem(current_list_row)
+            current_list_row -= 1
+
+        self.close()
+
+        window_define_parking_lot.next_B.setEnabled(False)
 
     def close_reset_prompt(self):
         self.reject()
+
 
 class image_painter(QLabel):
     origin_x = 0
@@ -832,6 +850,8 @@ class input_dialog_prompt(QDialog):
         super(input_dialog_prompt, self).__init__()
         uic.loadUi(gui_dir + '\\get-index-prompt.ui', self)
 
+        self.setWindowIcon(QtGui.QIcon("{}\\icons\\info_icon.png".format(gui_dir)))
+
         if dialog_type == 'landmark':
             self.input_name_label.setText("Enter landmark index")
             self.setWindowTitle("Landmark index")
@@ -856,9 +876,9 @@ class input_dialog_prompt(QDialog):
 
     @staticmethod
     def get_data(dialog_type):
-
+        # Initiate index input dialog
         dialog = input_dialog_prompt(dialog_type)
-
+        # Execute input dialog
         dialog.exec_()
 
         return dialog.check_value_input()
