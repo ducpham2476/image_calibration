@@ -1,0 +1,35 @@
+2022-04-02 21:40:59.571839
+filename: original_test
+Working case: -1
+original_test.jpg not recovered, please check the camera/input
+
+2022-04-02 21:42:20.830854
+filename: original_test
+Working case: -1
+original_test.jpg not recovered, please check the camera/input
+
+2022-04-02 21:44:56.771153
+filename: original_test
+Working case: 0
+original_test.jpg recovered
+
+2022-04-02 21:46:27.903682
+filename: original_test
+Working case: 0
+original_test.jpg recovered
+
+2022-04-02 21:50:43.296996
+filename: original_test
+Working case: 0
+original_test.jpg recovered
+
+2022-04-02 21:58:40.889757
+filename: original_test
+Working case: 0
+original_test.jpg recovered
+
+2022-04-02 22:32:33.605992
+filename: original_test
+Working case: 0
+original_test.jpg recovered
+

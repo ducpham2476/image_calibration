@@ -177,6 +177,7 @@ def image_calibration(
 
 	# Translation calibration main function
 	def translation(shift_image, case, ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y):
+		translation_flag = False
 		if case != -1:
 			# Initiate values
 			translation_x = ref_midpoint_x - cur_midpoint_x
@@ -194,7 +195,8 @@ def image_calibration(
 			# Return the original position
 			shift_copy = shift_image
 			shift_revert = imutils.translate(shift_copy, translation_x, translation_y)
-
+			# Return signal flag, determine that image has been translated
+			translation_flag = True
 		else:
 			translation_x = 0
 			translation_y = 0
@@ -203,7 +205,7 @@ def image_calibration(
 			# Do nothing, return the original image
 			shift_revert = shift
 
-		return shift_revert, translation_x, translation_y
+		return shift_revert, translation_x, translation_y, translation_flag
 
 	def rotation_case(cur_midpoint_x, cur_midpoint_y, cur_xx, cur_yy):
 
@@ -219,14 +221,16 @@ def image_calibration(
 
 		angle_sum = (angle_with_x_axis + angle_with_y_axis) * 180 / 3.1415
 
-		if angle_sum > 90:
+		if angle_sum < 90:
 			return "counter clockwise"
-		elif angle_sum < 90:
+		elif angle_sum >= 90:
 			return "clockwise"
 		else:
 			return "no rotation"
 
-	def rotation(shift_image, case, ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y):
+	def rotation(image, case, ref_midpoint_x, ref_midpoint_y, cur_midpoint_x, cur_midpoint_y):
+
+		rotation_flag = False
 
 		# Initiate the values
 		angle = []  # Rotation angle properties, angle[1]:angle[4] correspond to angle calculations
@@ -276,15 +280,15 @@ def image_calibration(
 			# Do nothing, return the original image. Print out a warning to the user
 			print("Landmarks mismatched, image not processed, please check the camera/input")
 
-			rotate_image = shift_image
-			return rotate_image, 0
+			rotate_image = image
+			return rotate_image, 0, rotation_flag
 		# Debug:
 		# print(angle_final)
 
 		# Check if the angle is too large
 		if angle_final in range(-15, 16):
 			# Rotate the image
-			shift_copy = shift_image
+			shift_copy = image
 			# Debug:
 			# cv2.imwrite(os.path.join("D:\\21_05_08_result\\debug", "debug.jpg"), shift_copy)
 			rotate_mat = cv2.getRotationMatrix2D((3000 // 2, 3000 // 2), angle_final, 1.0)
@@ -294,12 +298,14 @@ def image_calibration(
 			# print(rotate_mat)
 			# Rotation calibration
 			rotate_image = cv2.warpAffine(shift_copy, rotate_mat, (3000, 3000))
+			# Return signal flag, determine that image has been rotated
+			rotation_flag = True
 		else:
 			print("Image is tilted too much, please check the camera")
 			print("The image will not be rotated")
-			rotate_image = shift_image
+			rotate_image = image
 
-		return rotate_image, angle_final
+		return rotate_image, angle_final, rotation_flag
 
 	# Crop out the original image & save image function
 	def save_image(path, img, case, translation_x, translation_y, angle):
@@ -346,29 +352,40 @@ def image_calibration(
 	process_image = zoom_image(image_data)
 	if mode == 0:
 		# Perform image rotation calibration first
-		rot_image, rot_angle = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
+		rot_image, rot_angle, rot_flag = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
 		# Cut out the region of interest, update landmark values
 		rot_image_cutout = rot_image[960:960 + 1080, 540:540 + 1920]
+		# Find all landmarks again, then perform image translation if necessary
 		status, current_x, current_y = landmark_recognition.find_landmark(rot_image_cutout)
 		run_fl, run_md, cur_togg = case_switch_mode()
 		ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y = midpoint_calculate(run_fl, run_md, cur_togg)
 		r_case = run_case(run_fl, run_md, cur_togg)
 		# With new landmark information, perform image translation calibration
-		trans_image, trans_x, trans_y = translation(rot_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
+		trans_image, trans_x, trans_y, trans_flag =\
+			translation(rot_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
 		# Save image as file
-		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
-
-	# In case of running image translation calibration only:
-	if mode == 2:
-		trans_image, trans_x, trans_y = translation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
-		rot_angle = 0
 		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
 		
 	# In case of running image rotation calibration only:
 	elif mode == 1:
 		trans_x = 0
 		trans_y = 0
-		rot_image, rot_angle = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
+		rot_image, rot_angle, rot_flag = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
 		save_image(parent_path, rot_image, r_case, trans_x, trans_y, rot_angle)
 
-	del status, current_x, current_y, reference_x, reference_y
+	# In case of running image translation calibration only:
+	elif mode == 2:
+		trans_image, trans_x, trans_y, trans_flag =\
+			translation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
+		rot_angle = 0
+		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
+
+	# Other than previous listed cases (Redundant)
+	else:
+		return False
+
+	# Return image calibration signal
+	if rot_flag & trans_flag == True:
+		return True
+	else:
+		return False

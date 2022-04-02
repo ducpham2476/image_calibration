@@ -9,13 +9,14 @@
 
 # PyQt5 packages, for GUI building
 from PyQt5 import QtWidgets, uic, QtCore, QtGui
-from PyQt5.QtWidgets import QFileDialog, QApplication, QLabel, QMainWindow, QDialog
+from PyQt5.QtWidgets import QFileDialog, QApplication, QLabel, QMainWindow, QDialog, QListWidgetItem
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 
 # System packages
 import sys
 import os
+from collections import deque
 # import threading
 # import time
 # import logging
@@ -64,6 +65,9 @@ available_parking_lots, avail_lot_is_empty = folder_file_action.file_open_avail_
 reference_filename = ""
 previous_reference_filename = ""
 select_parking_lot = ""
+# Implement Undo/Redo actions within Define parking lot step
+action_queue = deque()
+redo_queue = deque()
 
 # Create list of reference landmarks
 number_of_landmarks = 4     # Number of parking lot reference landmarks, typically 4 for best transformations
@@ -553,6 +557,10 @@ class define_parking_lot(QMainWindow):
         self.back_B.clicked.connect(self.select_reference_image)
         self.next_B.clicked.connect(self.to_result)
 
+        self.undo_B.clicked.connect(self.undo_action)
+        self.redo_B.clicked.connect(self.redo_action)
+        self.reset_B.clicked.connect(self.reset_action)
+
         self.savelm_B.clicked.connect(self.get_landmark_index)
         self.saveplot_B.clicked.connect(self.get_parking_slot_index)
 
@@ -611,10 +619,12 @@ class define_parking_lot(QMainWindow):
             # print(ref_position_y[index])
 
             add_string = "Landmark {}: {}, {}".format(index, ref_position_x[index], ref_position_y[index])
-            self.listWidget.addItem(add_string)
 
-            # print(ref_position_x)
-            # print(ref_position_y)
+            add_item = QListWidgetItem(add_string)
+            self.listWidget.addItem(add_item)
+            self.listWidget.setCurrentItem(add_item)
+
+            print(self.listWidget.currentItem().text())
 
     def get_parking_slot_index(self):
         global number_of_slot
@@ -638,14 +648,89 @@ class define_parking_lot(QMainWindow):
             slot_position_y[slot_index] = int((start_point_y + end_point_y) / 2)
             # print(ref_position_y[index])
 
-            add_string = "Parking slot {}: {}, {}".format(slot_index,
+            add_string = "Slot {}: {}, {}".format(slot_index,
                                                           slot_position_x[slot_index],
                                                           slot_position_y[slot_index]
                                                           )
-            self.listWidget.addItem(add_string)
+            add_item = QListWidgetItem(add_string)
+            self.listWidget.addItem(add_item)
+            self.listWidget.setCurrentItem(add_item)
 
-    def sort_defined_list(self):
-        pass
+            print(self.listWidget.currentItem().text())
+
+    def text_manipulation(self):
+        current_list_selection = self.listWidget.currentItem()
+
+        if current_list_selection is None:
+            # Return False, take no action later on
+            return False, None
+        else:
+            current_string = self.listWidget.currentItem().text()
+            # Return True & current item information
+            temp_item = current_string.split(':')
+            temp_string = "{}{}".format(temp_item[0], temp_item[1])
+
+            selected_items = temp_string.split(' ')
+
+            return True, selected_items
+
+    def undo_action(self):
+        global action_queue
+        global ref_position_x, ref_position_y
+        global slot_position_x, slot_position_y
+
+        action_flag, values = self.text_manipulation()
+
+        if action_flag is False:
+            # Take no action, return to main program
+            return
+        else:
+            if len(action_queue) > 50:
+                # If the action queue has more than 50 entries, do nothing & return to the main program
+                return
+            action_queue.append(values)
+            current_row = self.listWidget.currentRow()
+            self.listWidget.takeItem(current_row)
+
+            # Check which type of data was taken, delete the corresponding data from the program
+            if values[0] == "Landmark":
+                ref_position_x[int(values[1])] = 0
+                ref_position_y[int(values[1])] = 0
+
+            elif values[0] == "Slot":
+                slot_position_x[int(values[1])] = 0
+                slot_position_y[int(values[1])] = 0
+
+        return
+
+    def redo_action(self):
+
+        global action_queue
+        global ref_position_x, ref_position_y
+        global slot_position_x, slot_position_y
+
+        if len(action_queue) == 0:
+
+            return
+        else:
+            values = action_queue.pop()
+
+            add_string = "{} {}: {} {}".format(values[0], values[1], values[2], values[3])
+            add_item = QListWidgetItem(add_string)
+            self.listWidget.addItem(add_item)
+            self.listWidget.setCurrentItem(add_item)
+
+            if values[0] == "Landmark":
+                ref_position_x[int(values[1])] = int((values[2].split(","))[0])
+                ref_position_y[int(values[1])] = int(values[3])
+
+            elif values[0] == "Slot":
+                slot_position_x[int(values[1])] = int((values[2].split(","))[0])
+                slot_position_y[int(values[1])] = int(values[3])
+
+    @staticmethod
+    def reset_action():
+        reset_prompt()
 
     @staticmethod
     def select_reference_image():
@@ -674,6 +759,26 @@ class define_parking_lot(QMainWindow):
 
         window.setCurrentWidget(window_show_result)
 
+
+class reset_prompt(QDialog):
+
+    def __init__(self):
+        super(reset_prompt, self).__init__()
+        uic.loadUi('{}\\reset-prompt.ui'.format(gui_dir), self)
+
+        self.setWindowTitle("Reset all data?")
+        self.setWindowIcon(QtGui.QIcon("{}\\icons\\warning_icon.png".format(gui_dir)))
+        self.yes_B.clicked.connect(self.reset_all_data)
+        self.no_B.clicked.connect(self.close_reset_prompt)
+
+        self.exec_()
+
+    @staticmethod
+    def reset_all_data():
+        pass
+
+    def close_reset_prompt(self):
+        self.reject()
 
 class image_painter(QLabel):
     origin_x = 0
@@ -838,21 +943,26 @@ class show_result(QMainWindow):
         self.com_ref_B.setText("COMPARE TO REFERENCE")
         self.com_ref_B.clicked.connect(self.compare_to_standard)
 
-    @staticmethod
-    def image_calibration():
+    def image_calibration(self):
         read_image = cv2.imread(parent+"\\images\\original_test.jpg")
         current_status, current_x, current_y = landmark_action.find_landmark(read_image)
 
-        image_calibration.image_calibration(parent_path=parent,
-                                            image_data=read_image,
-                                            parklot_name=select_parking_lot,
-                                            mode=0,
-                                            filename="original_test.jpg",
-                                            current_status=current_status,
-                                            ref_x=ref_position_x,
-                                            ref_y=ref_position_y,
-                                            cur_x=current_x,
-                                            cur_y=current_y)
+        trigger_flag = \
+            image_calibration.image_calibration(parent_path=parent,
+                                                image_data=read_image,
+                                                parklot_name=select_parking_lot,
+                                                mode=0,
+                                                filename="original_test.jpg",
+                                                current_status=current_status,
+                                                ref_x=ref_position_x,
+                                                ref_y=ref_position_y,
+                                                cur_x=current_x,
+                                                cur_y=current_y)
+
+        if trigger_flag:
+            self.noti_box.setText("Image recovered successfully!")
+        else:
+            self.noti_box.setText("Image not recovered, please check debug.txt for more information!")
 
     @staticmethod
     def to_define_parking_lot():

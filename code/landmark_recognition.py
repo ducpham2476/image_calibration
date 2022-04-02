@@ -48,22 +48,22 @@ def find_landmark(image_data):
 		# Define contour bounding box
 		x, y, w, h = cv2.boundingRect(c)
 		# Defined range for landmark 1
-		if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (20 < w < 70) and (20 < h < 60):
+		if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (15 < w < 70) and (7 < h < 60):
 			current_x[1] = x + (w // 2)
 			current_y[1] = y + (h // 2)
 			current_status[1] = current_status[1] + 1
 		# Defined range for landmarks 2
-		elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (20 < w < 70) and (20 < h < 60):
+		elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (15 < w < 70) and (7 < h < 60):
 			current_x[2] = x + (w // 2)
 			current_y[2] = y + (h // 2)
 			current_status[2] = current_status[2] + 1
 		# Defined range for landmarks 3
-		elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (20 < w < 80) and (20 < h < 60):
+		elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (20 < w < 80) and (10 < h < 60):
 			current_x[3] = x + (w // 2)
 			current_y[3] = y + (h // 2)
 			current_status[3] = current_status[3] + 1
 		# Defined range for landmarks 4
-		elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (20 < w < 90) and (20 < h < 90):
+		elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (20 < w < 90) and (10 < h < 90):
 			current_x[4] = x + (w // 2)
 			current_y[4] = y + (h // 2)
 			current_status[4] = current_status[4] + 1
