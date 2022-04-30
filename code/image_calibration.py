@@ -4,10 +4,22 @@ import numpy as np
 import cv2
 import imutils
 import datetime
+import math
 
+# Import additional packages/file
 import landmark_recognition
 
 
+# Define main function - Image Calibration
+# Inputs:
+# parent_path: Top working directory of the program, used for file navigation
+# image_data: Read image data from saved location
+# parklot_name: Passed parking lot name, might be new name or available name selected
+# mode: Calibration mode, 0 for both translation and rotation, 1 for translation, 2 for rotation
+# filename: Image data's path, used to extract the name
+# current_status: Landmarks' status, informing which landmark is available for calibration
+# ref_x, ref_y: Reference landmarks' positions
+# cur_x, cur_y: Current image landmarks' positions
 def image_calibration(
 		parent_path, image_data, parklot_name, mode, filename, current_status, ref_x, ref_y, cur_x, cur_y
 ):
@@ -127,9 +139,17 @@ def image_calibration(
 		unit_ref_vector = ref_vector / np.linalg.norm(ref_vector)
 		unit_cur_vector = cur_vector / np.linalg.norm(cur_vector)
 		dot_prod = np.dot(unit_ref_vector, unit_cur_vector)
+		# print(dot_prod)
+
+		if abs(dot_prod) > 1.1:
+			angle = -90
+
+			return angle
+
+		elif 1 < abs(dot_prod) < 1.1:
+			dot_prod = math.floor(dot_prod)
 
 		angle = np.arccos(dot_prod) * 180 / 3.1415
-
 		# Debug:
 		# print(angle)
 
@@ -207,24 +227,34 @@ def image_calibration(
 
 		return shift_revert, translation_x, translation_y, translation_flag
 
-	def rotation_case(cur_midpoint_x, cur_midpoint_y, cur_xx, cur_yy):
+	def rotation_case(case, ref_midpoint_x, ref_midpoint_y, ref_xx, ref_yy, cur_midpoint_x, cur_midpoint_y, cur_xx, cur_yy):
 
 		standard_x_vector = [960, 0]
-		standard_y_vector = [0, 540]
-		rotate_vector = [cur_xx - cur_midpoint_x, cur_yy - cur_midpoint_y]
 		unit_x_vector = standard_x_vector / np.linalg.norm(standard_x_vector)
-		unit_y_vector = standard_y_vector / np.linalg.norm(standard_y_vector)
-		unit_current_vector = rotate_vector / np.linalg.norm(rotate_vector)
 
-		angle_with_x_axis = np.dot(unit_current_vector, unit_x_vector)
-		angle_with_y_axis = np.dot(unit_current_vector, unit_y_vector)
+		reference_vector = [ref_xx - ref_midpoint_x, ref_yy - ref_midpoint_y]
+		unit_reference_vector = reference_vector / np.linalg.norm(reference_vector)
 
-		angle_sum = (angle_with_x_axis + angle_with_y_axis) * 180 / 3.1415
+		current_vector = [cur_xx - cur_midpoint_x, cur_yy - cur_midpoint_y]
+		unit_current_vector = current_vector / np.linalg.norm(current_vector)
 
-		if angle_sum < 90:
-			return "counter clockwise"
-		elif angle_sum >= 90:
-			return "clockwise"
+		reference_angle_with_x_axis = np.dot(unit_reference_vector, unit_x_vector)
+		current_angle_with_x_axis = np.dot(unit_current_vector, unit_x_vector)
+
+		if case == 0 or case == 2 or case == 3:
+			if reference_angle_with_x_axis > current_angle_with_x_axis:
+				return "counter clockwise"
+			elif reference_angle_with_x_axis < current_angle_with_x_axis:
+				return "clockwise"
+			else:
+				return "no rotation"
+		elif case == 1 or case == 4:
+			if reference_angle_with_x_axis > current_angle_with_x_axis:
+				return "clockwise"
+			elif reference_angle_with_x_axis < current_angle_with_x_axis:
+				return "counter clockwise"
+			else:
+				return "no rotation"
 		else:
 			return "no rotation"
 
@@ -256,7 +286,8 @@ def image_calibration(
 			angle_final = round((angle[1] + angle[4]) / 2)
 			# If the current x[1] coordinate > reference x[1] coordinate, image has rotated clockwise, need to revert
 			# with a negative angle
-			if rotation_case(cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]) == "counter clockwise":
+			if rotation_case(case, ref_midpoint_x, ref_midpoint_y, reference_x[1], reference_y[1],
+							 cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]) == "counter clockwise":
 				angle_final = -angle_final
 		# Debug: Print angle[1], angle[4] & angle_final
 		# print(angle[1], angle[4])
@@ -271,7 +302,8 @@ def image_calibration(
 				reference_x[3], reference_y[3], current_x[3], current_y[3]
 			)
 			angle_final = round((angle[2] + angle[3]) / 2)
-			if rotation_case(cur_midpoint_x, cur_midpoint_y, current_x[2], current_y[2]) == "counter clockwise":
+			if rotation_case(case, ref_midpoint_x, ref_midpoint_y, reference_x[1], reference_y[1],
+							 cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]) == "counter clockwise":
 				angle_final = -angle_final
 		# Debug: Print angle[2], angle[3] & angle_final
 		# print(angle[2], angle[3])
@@ -286,7 +318,7 @@ def image_calibration(
 		# print(angle_final)
 
 		# Check if the angle is too large
-		if angle_final in range(-15, 16):
+		if angle_final in range(-17, 18):
 			# Rotate the image
 			shift_copy = image
 			# Debug:
@@ -341,6 +373,9 @@ def image_calibration(
 		f_debug.write("\n")
 		# print("")
 
+	# Initiate calibration flags
+	rot_flag = trans_flag = False
+
 	run_fl, run_md, cur_togg = case_switch_mode()
 	ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y = midpoint_calculate(run_fl, run_md, cur_togg)
 	r_case = run_case(run_fl, run_md, cur_togg)
@@ -353,6 +388,8 @@ def image_calibration(
 	if mode == 0:
 		# Perform image rotation calibration first
 		rot_image, rot_angle, rot_flag = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
+		if rot_flag is False:
+			rot_image = process_image
 		# Cut out the region of interest, update landmark values
 		rot_image_cutout = rot_image[960:960 + 1080, 540:540 + 1920]
 		# Find all landmarks again, then perform image translation if necessary
@@ -363,8 +400,16 @@ def image_calibration(
 		# With new landmark information, perform image translation calibration
 		trans_image, trans_x, trans_y, trans_flag =\
 			translation(rot_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
+		if rot_flag & trans_flag is False:
+			trans_image = rot_image
 		# Save image as file
 		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
+
+		# Return image calibration signal
+		if rot_flag & trans_flag is True:
+			return True
+		else:
+			return False
 		
 	# In case of running image rotation calibration only:
 	elif mode == 1:
@@ -373,6 +418,8 @@ def image_calibration(
 		rot_image, rot_angle, rot_flag = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
 		save_image(parent_path, rot_image, r_case, trans_x, trans_y, rot_angle)
 
+		return rot_flag
+
 	# In case of running image translation calibration only:
 	elif mode == 2:
 		trans_image, trans_x, trans_y, trans_flag =\
@@ -380,12 +427,8 @@ def image_calibration(
 		rot_angle = 0
 		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
 
+		return trans_flag
+
 	# Other than previous listed cases (Redundant)
 	else:
-		return False
-
-	# Return image calibration signal
-	if rot_flag & trans_flag == True:
-		return True
-	else:
-		return False
+		return rot_flag & trans_flag
