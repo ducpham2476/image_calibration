@@ -40,7 +40,8 @@ def image_comparison(reference_image, calibrated_image, write_path):
     cv2.imwrite(os.path.join(write_path, "temp.jpg"), output)
 
 
-def image_difference(reference_image, calibrated_image, write_path):
+def image_difference(reference_image, calibrated_image, write_path, start_roi_x, start_roi_y, end_roi_x, end_roi_y):
+
     reference_data = cv2.imread(reference_image)
     calibrated_data = cv2.imread(calibrated_image)
 
@@ -55,13 +56,17 @@ def image_difference(reference_image, calibrated_image, write_path):
     difference = cv2.absdiff(reference_grayscale, calibrated_grayscale)
     _, binary_difference = cv2.threshold(difference, 35, 255, cv2.THRESH_BINARY)
 
-    pixel_matching_number = cv2.countNonZero(binary_difference)
-    matching_rate = (1 - pixel_matching_number/(1920*1080)) * 100
+    if end_roi_x == 0 and end_roi_y == 0:
+        pixel_matching_number = cv2.countNonZero(binary_difference)
+        matching_rate = (1 - pixel_matching_number / (1920*1080)) * 100
+    else:
+        pixel_matching_number = cv2.countNonZero(binary_difference[start_roi_y:end_roi_y, start_roi_x:end_roi_x])
+        matching_rate = (1 - pixel_matching_number/(abs(end_roi_x-start_roi_x)*abs(end_roi_y-start_roi_y))) * 100
     # print("Image matching rate = ", round(matching_rate, 4))
 
     cv2.imwrite(os.path.join(write_path, "temp_difference.jpg"), binary_difference)
 
-    return round(matching_rate, 4)
+    return round(matching_rate, 3)
 
 """
 # Test code

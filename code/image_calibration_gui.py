@@ -89,6 +89,12 @@ ref_position_y = []         # Landmark, y position
 slot_position_x = []        # Parking slot, x position
 slot_position_y = []        # Parking slot, y position
 
+# Global variables for Region of Interest (RoI)
+start_roi_x = 0
+start_roi_y = 0
+end_roi_x = 0
+end_roi_y = 0
+
 # Initiate landmarks list
 for i in range(0, number_of_landmarks + 1):
     ref_position_x.append(0)
@@ -230,14 +236,19 @@ class define_new_parking_lot(QMainWindow):
             self.noti_box.setText("No parking lot name inserted! Try again")
             self.next_B.setEnabled(False)
         else:
+            print(parking_lot_name)
+            print(available_parking_lots)
             # If the input box is not empty and there are defined parking lots before: Check if the name is used or not
             # If the name is used: Return message & Block next step
             # If the name is not used: Return message & Allow next step
             for name in available_parking_lots:
+                print(name)
                 if parking_lot_name == name:
                     self.noti_box.setText("Parking lot already existed! Try an another name, or adjust the available "
                                           "parking lot instead!")
                     self.next_B.setEnabled(False)
+                    # If the name is found on available list, break the loop to block this input
+                    break
                 else:
                     self.noti_box.setText("Valid parking lot name!")
                     self.next_B.setEnabled(True)
@@ -551,6 +562,7 @@ class define_parking_lot(QMainWindow):
 
         self.savelm_B.clicked.connect(self.get_landmark_index)
         self.saveplot_B.clicked.connect(self.get_parking_slot_index)
+        self.save_roi_B.clicked.connect(self.get_region_of_interest)
 
         self.setup_image()
 
@@ -596,13 +608,27 @@ class define_parking_lot(QMainWindow):
     def get_landmark_index(self):
         global start_point_x, start_point_y, end_point_x, end_point_y
         global ref_position_x, ref_position_y
+        global reference_filename
 
         index = int(input_dialog_prompt('landmark').get_data('landmark'))
         if index in range(1, 5):
+            """
             ref_position_x[index] = int((start_point_x + end_point_x)/2)
             # print(ref_position_x[index])
             ref_position_y[index] = int((start_point_y + end_point_y)/2)
-            # print(ref_position_y[index])
+            """
+            small_image = \
+                landmark_action.image_get_data(reference_filename,
+                                               start_point_x,
+                                               start_point_y,
+                                               end_point_x,
+                                               end_point_y)
+            # cv2.imshow("check window", small_image)
+            # cv2.waitKey()
+            x_offset, y_offset = landmark_action.landmark_definition(small_image)
+
+            ref_position_x[index] = start_point_x + x_offset
+            ref_position_y[index] = start_point_y + y_offset
 
             add_string = "Landmark {}: {}, {}".format(index, ref_position_x[index], ref_position_y[index])
 
@@ -613,6 +639,7 @@ class define_parking_lot(QMainWindow):
         self.enable_next_step()
 
     def get_parking_slot_index(self):
+        global start_point_x, start_point_y, end_point_x, end_point_y
         global number_of_slot
         global slot_position_x, slot_position_y
 
@@ -642,6 +669,21 @@ class define_parking_lot(QMainWindow):
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
 
+    def get_region_of_interest(self):
+        global start_point_x, start_point_y, end_point_x, end_point_y
+        global start_roi_x, start_roi_y
+        global end_roi_x, end_roi_y
+
+        start_roi_x = start_point_x
+        start_roi_y = start_point_y
+        end_roi_x = end_point_x
+        end_roi_y = end_point_y
+
+        add_string = "RoI : {} {}, {} {}".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y)
+        self.listWidget.addItem(add_string)
+
+        return
+
     def text_manipulation(self):
         current_list_selection = self.listWidget.currentItem()
 
@@ -662,6 +704,7 @@ class define_parking_lot(QMainWindow):
         global action_queue
         global ref_position_x, ref_position_y
         global slot_position_x, slot_position_y
+        global start_roi_x, start_roi_y, end_roi_x, end_roi_y
 
         action_flag, values = self.text_manipulation()
 
@@ -683,6 +726,9 @@ class define_parking_lot(QMainWindow):
                 slot_position_x[int(values[1])] = 0
                 slot_position_y[int(values[1])] = 0
 
+            elif values[0] == "RoI":
+                start_roi_x = start_roi_y = end_roi_x = end_roi_y = 0
+
             self.enable_next_step()
 
         return
@@ -692,11 +738,16 @@ class define_parking_lot(QMainWindow):
         global action_queue
         global ref_position_x, ref_position_y
         global slot_position_x, slot_position_y
+        global start_roi_x, start_roi_y, end_roi_x, end_roi_y
 
         if len(action_queue) != 0:
             values = action_queue.pop()
 
-            add_string = "{} {}: {} {}".format(values[0], values[1], values[2], values[3])
+            if values[0] == "RoI":
+                add_string = "RoI: {} {}, {} {}".format(values[1], values[2], values[3], values[4])
+            else:
+                add_string = "{} {}: {} {}".format(values[0], values[1], values[2], values[3])
+
             add_item = QListWidgetItem(add_string)
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
@@ -759,6 +810,7 @@ class reset_prompt(QDialog):
     def reset_all_data(self):
         global ref_position_x, ref_position_y
         global slot_position_x, slot_position_y
+        global start_roi_x, start_roi_y, end_roi_x, end_roi_y
         global number_of_slot
         global action_queue
 
@@ -770,6 +822,8 @@ class reset_prompt(QDialog):
         slot_position_x.clear()
         slot_position_y.clear()
         number_of_slot = 0
+        # Reset Region of Interest
+        start_roi_x = start_roi_y = end_roi_x = end_roi_y = 0
         # Reset action queue as well
         action_queue.clear()
 
@@ -997,7 +1051,7 @@ class show_result(QMainWindow):
 
             # Start autorun procedure
             if image_index <= max_image_index - 1:
-                run_timer = threading.Timer(3, self.auto_run)
+                run_timer = threading.Timer(2, self.auto_run)
                 run_timer.start()
 
                 return
@@ -1053,7 +1107,13 @@ class show_result(QMainWindow):
         temporary_path = "{}\\{}\\temp".format(data_process_dir,
                                                select_parking_lot)
 
-        rate = image_action.image_difference(reference_filename, calib_image, temporary_path)
+        rate = image_action.image_difference(reference_filename,
+                                             calib_image,
+                                             temporary_path,
+                                             start_roi_x,
+                                             start_roi_y,
+                                             end_roi_x,
+                                             end_roi_y)
 
         self.calib_rate_label.setText("RATING: {}%".format(rate))
         self.com_ref_B.setEnabled(True)

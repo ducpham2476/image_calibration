@@ -705,13 +705,13 @@ QPushButton:pressed{
      <string>COMPARE TO REFERENCE</string>
     </property>
    </widget>
-   <widget class="QLabel" name="original_image_disp">
+   <widget class="QLabel" name="standard_image_disp">
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>120</y>
-      <width>480</width>
-      <height>270</height>
+      <y>140</y>
+      <width>320</width>
+      <height>180</height>
      </rect>
     </property>
     <property name="minimumSize">
@@ -743,7 +743,7 @@ QPushButton:pressed{
 color:rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>Original Image</string>
+     <string>Standard Image</string>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -755,10 +755,10 @@ color:rgb(255, 255, 255);</string>
    <widget class="QLabel" name="calib_image_disp">
     <property name="geometry">
      <rect>
-      <x>530</x>
-      <y>120</y>
-      <width>480</width>
-      <height>270</height>
+      <x>710</x>
+      <y>140</y>
+      <width>320</width>
+      <height>180</height>
      </rect>
     </property>
     <property name="minimumSize">
@@ -802,10 +802,10 @@ color:rgb(255, 255, 255);</string>
    <widget class="QListWidget" name="debug_list">
     <property name="geometry">
      <rect>
-      <x>1030</x>
-      <y>120</y>
-      <width>221</width>
-      <height>270</height>
+      <x>1050</x>
+      <y>140</y>
+      <width>201</width>
+      <height>181</height>
      </rect>
     </property>
     <property name="maximumSize">
@@ -819,12 +819,12 @@ color:rgb(255, 255, 255);</string>
 color: rgb(255, 255, 255);</string>
     </property>
    </widget>
-   <widget class="QLabel" name="original_image_label">
+   <widget class="QLabel" name="standard_image_label">
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>80</y>
-      <width>481</width>
+      <y>100</y>
+      <width>321</width>
       <height>31</height>
      </rect>
     </property>
@@ -841,7 +841,7 @@ color: rgb(255, 255, 255);</string>
      <string notr="true">color: rgb(75, 75, 75);</string>
     </property>
     <property name="text">
-     <string>ORIGINAL IMAGE</string>
+     <string>STANDARD IMAGE</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -850,9 +850,9 @@ color: rgb(255, 255, 255);</string>
    <widget class="QLabel" name="calib_image_label">
     <property name="geometry">
      <rect>
-      <x>530</x>
-      <y>80</y>
-      <width>481</width>
+      <x>710</x>
+      <y>100</y>
+      <width>321</width>
       <height>31</height>
      </rect>
     </property>
@@ -878,9 +878,9 @@ color: rgb(255, 255, 255);</string>
    <widget class="QLabel" name="debug_label">
     <property name="geometry">
      <rect>
-      <x>1030</x>
-      <y>80</y>
-      <width>221</width>
+      <x>1050</x>
+      <y>100</y>
+      <width>201</width>
       <height>31</height>
      </rect>
     </property>
@@ -906,9 +906,9 @@ color: rgb(255, 255, 255);</string>
    <widget class="QLabel" name="calib_rate_label">
     <property name="geometry">
      <rect>
-      <x>530</x>
-      <y>400</y>
-      <width>481</width>
+      <x>710</x>
+      <y>330</y>
+      <width>321</width>
       <height>31</height>
      </rect>
     </property>
@@ -935,9 +935,9 @@ color: rgb(255, 255, 255);</string>
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>469</y>
+      <y>429</y>
       <width>1221</width>
-      <height>141</height>
+      <height>181</height>
      </rect>
     </property>
     <property name="font">
@@ -982,7 +982,7 @@ kerning: 100;
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>440</y>
+      <y>400</y>
       <width>171</width>
       <height>21</height>
      </rect>
@@ -1026,6 +1026,81 @@ kerning: 100;
     </property>
     <property name="text">
      <string>RESULTS</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="original_image_disp">
+    <property name="geometry">
+     <rect>
+      <x>370</x>
+      <y>140</y>
+      <width>320</width>
+      <height>180</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>0</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>16777215</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <family>Montserrat</family>
+      <pointsize>14</pointsize>
+      <weight>75</weight>
+      <italic>true</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="cursor">
+     <cursorShape>CrossCursor</cursorShape>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(135, 135, 135); 
+color:rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Captured Image</string>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="original_image_label_2">
+    <property name="geometry">
+     <rect>
+      <x>370</x>
+      <y>100</y>
+      <width>321</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Montserrat</family>
+      <pointsize>16</pointsize>
+      <weight>75</weight>
+      <italic>false</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(75, 75, 75);</string>
+    </property>
+    <property name="text">
+     <string>CAPTURED IMAGE</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>

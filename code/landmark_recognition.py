@@ -137,3 +137,44 @@ def get_coordinate_std_file(input_path, input_name):
 
 	return x_coord, y_coord
 # ----------------------------------------------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------------ ----------------------------------
+def image_get_data(image_path, start_position_x, start_position_y, end_position_x, end_position_y):
+	# Read in reference image
+	image_data = cv2.imread(image_path)
+	cut = image_data
+
+	# Crop specific image data section
+	crop_image = cut[start_position_y:end_position_y,start_position_x:end_position_x]
+	# cv2.imshow("Show me the crop", crop_image)
+
+	return crop_image
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def landmark_definition(image_data):
+	position_x = 0
+	position_y = 0
+
+	image_copy = image_data.copy()
+	image_hsv = cv2.cvtColor(image_copy, cv2.COLOR_BGR2HSV)
+	image_mask = cv2.inRange(image_hsv, im_lower, im_upper)
+	image_mask = cv2.morphologyEx(image_mask, cv2.MORPH_OPEN, kernel)
+
+	# Finding contours available on image
+	cur_cnt, _ = cv2.findContours(image_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	largest_area = 0
+
+	for c in cur_cnt:
+		# Define contour bounding box
+		x, y, w, h = cv2.boundingRect(c)
+
+		if largest_area < ((w-x)*(h-y)):
+			position_x = int((2*x + w) / 2)
+			position_y = int((2*y + h) / 2)
+			largest_area = ((w-x)*(h-y))
+
+	return position_x, position_y
+# ----------------------------------------------------------------------------------------------------------------------
