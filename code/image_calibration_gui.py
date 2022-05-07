@@ -25,9 +25,13 @@ import threading
 import cv2
 
 # Import additional functions
+# Import directory & file related functions
 import folder_file_manipulation as folder_file_action
+# Import landmarks processing functions
 import landmark_recognition as landmark_action
+# Import main image calibration function
 import image_calibration
+# Import additional computing functions
 import image_additional_function as image_action
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -111,7 +115,7 @@ for i in range(0, number_of_landmarks + 1):
 # Define .ui classes
 # 1 > Welcome window:
 class window_welcome(QMainWindow):
-    # Initiate Welcome Window on object creation
+    # Initiate Welcome window on application execution
     def __init__(self):
         # Initiate object
         super(window_welcome, self).__init__()
@@ -122,17 +126,17 @@ class window_welcome(QMainWindow):
         self.adj_pl_B.clicked.connect(self.to_adjust)
         self.exit_B.clicked.connect(self.exit_program)
 
-    # Change to 2.1 > Define new parking lot Window
+    # Change to 2.1 > Define New Parking Lot window
     @staticmethod
     def to_define_new():
         window.setCurrentWidget(window_define_new)
 
-    # Change to 2.2 > Process Parking lot auto Window
+    # Change to 2.2 > Process Parking Lot Auto window
     @staticmethod
     def to_run_auto():
         window.setCurrentWidget(window_run_auto)
 
-    # Change to 2.3 > Adjust parking lots Window
+    # Change to 2.3 > Adjust Parking Lots window
     @staticmethod
     def to_adjust():
         window.setCurrentWidget(window_adjust)
@@ -167,8 +171,10 @@ class exit_dialog(QDialog):
             for filename in os.listdir(temporary_path):
                 os.remove(os.path.join(temporary_path, filename))
         # Close the dialog and main program
+        ### Need to add threads management functions!
         # for threads in threading.enumerate():
         #     pass
+        # Close dialog and main window
         self.close()
         window.close()
 
@@ -180,7 +186,7 @@ class exit_dialog(QDialog):
 
 # 2.1 > Define new parking lot menu:
 class define_new_parking_lot(QMainWindow):
-    # Initiate Welcome Window on object creation
+    # Initiate Welcome Window on application execution
     def __init__(self):
         super(define_new_parking_lot, self).__init__()
         uic.loadUi(gui_dir + '\\define-new-parking-lot.ui', self)
@@ -189,7 +195,7 @@ class define_new_parking_lot(QMainWindow):
         self.back_B.clicked.connect(self.to_welcome)
         # Block next step as a default
         self.next_B.setEnabled(False)
-        # Connect text edit box to a input checking function
+        # Connect text edit box to input checking function
         self.new_pl_name_textedit.cursorPositionChanged.connect(self.check_input_content)
 
     # Change to Select reference image Window
@@ -205,13 +211,10 @@ class define_new_parking_lot(QMainWindow):
         folder_file_action.folder_manip(parent, parking_lot_name)
         folder_file_action.file_manip(parent, parking_lot_name)
         self.add_new_parking_lot(parking_lot_name)
-
         # Reload available parking lot list as the list is updated
         available_parking_lots, avail_lot_is_empty = folder_file_action.file_open_avail_parking_lot(parent)
-
         # Change to Select reference image
         window.setCurrentWidget(window_image_browser)
-
         # Set current parking lot to the new parking lot name
         select_parking_lot = parking_lot_name
 
@@ -224,9 +227,6 @@ class define_new_parking_lot(QMainWindow):
     # to proceed to the next step
     def check_input_content(self):
         parking_lot_name = self.new_pl_name_textedit.text()
-        # Debug: Write input contents
-        # print("Parking lot name:", parking_lot_name)
-
         # If there is no available parking lot: Accept the name & Let the user go to the next step
         if avail_lot_is_empty:
             self.noti_box.setText("Valid parking lot name!")
@@ -236,13 +236,10 @@ class define_new_parking_lot(QMainWindow):
             self.noti_box.setText("No parking lot name inserted! Try again")
             self.next_B.setEnabled(False)
         else:
-            print(parking_lot_name)
-            print(available_parking_lots)
             # If the input box is not empty and there are defined parking lots before: Check if the name is used or not
             # If the name is used: Return message & Block next step
             # If the name is not used: Return message & Allow next step
             for name in available_parking_lots:
-                print(name)
                 if parking_lot_name == name:
                     self.noti_box.setText("Parking lot already existed! Try an another name, or adjust the available "
                                           "parking lot instead!")
@@ -259,12 +256,10 @@ class define_new_parking_lot(QMainWindow):
         temp_parking_lot = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), 'w+')
         temp_parking_lot.write(write_name)
         temp_parking_lot.close()
-
         # Clear previous text edit box value
         self.noti_box.setText("Notifications")
         self.new_pl_name_textedit.clear()
         self.next_B.setEnabled(False)
-
         # Update on 2 parking lot selection list (from Window 2.2 and Window 2.3)
         window_run_auto.add_parking_lot_list()
         window_adjust.refresh_parking_lot_list()
@@ -272,96 +267,114 @@ class define_new_parking_lot(QMainWindow):
 
 # 2.2 > Process parking lot auto menu:
 class process_parking_lot_auto(QMainWindow):
-    # Initiate Process Parking Lot Auto Window on object creation
+    # Initiate Process Parking Lot Auto Window on application execution
     def __init__(self):
         super(process_parking_lot_auto, self).__init__()
         uic.loadUi(gui_dir + '\\process-parking-lot-auto.ui', self)
         # Load available parking lot into selection list
         for name in available_parking_lots:
             self.avail_parklot.addItem(name)
-
+        # Connect buttons to their functions
         self.run_auto_B.clicked.connect(self.process_data)
         self.run_auto_B.setEnabled(False)
         self.back_B.clicked.connect(self.to_welcome)
         self.def_new_sw_B.clicked.connect(self.to_define_new)
-
+        # Connect parking lot list selection to a check function
+        # check if a parking lot is selected and has it been defined or not
         self.avail_parklot.itemSelectionChanged.connect(self.adjust_selection)
-        # self.show()
 
+    # Block the access to next step if no parking lot is selected
     def adjust_selection(self):
+        # If no parking lot is selected, block the next step
         if self.avail_parklot.currentItem() is None:
             self.run_auto_B.setEnabled(False)
         else:
+            # If a parking lot is selected, check if the parking lot is defined or not
             self.check_avail_ability()
 
+    # Check the definition of the selected parking lot
     def check_avail_ability(self):
         global select_parking_lot
-
+        # Get current parking lot name (extract from the selection on the list)
         parking_lot = self.avail_parklot.currentItem().text()
+        # If the name is None, block the next step
         if parking_lot == "":
             self.noti_box.setText("")
             self.run_auto_B.setEnabled(False)
+        # Else check the selected parking lot's data
         else:
-            # print(parking_lot)
+            # Access to the respective data storage of the parking lot
             data_path = "{}\\data_process\\{}".format(parent, parking_lot)
-            if os.stat("{}\\defined_parking_lot.txt".format(data_path)).st_size != 0 and os.stat(
-                    "{}\\landmarks.txt".format(data_path)).st_size != 0:
+            # Check the availability of reference image and landmarks information
+            if os.stat("{}\\defined_parking_lot.txt".format(data_path)).st_size != 0 and \
+                    os.stat("{}\\landmarks.txt".format(data_path)).st_size != 0:
+                # If both info available, allow access to the next step
                 self.noti_box.setText("Parking lot ready for calibration!")
                 self.run_auto_B.setEnabled(True)
-
+                # Set current parking lot
                 select_parking_lot = parking_lot
-            # print(data_path)
+            # If the requirements do not meet, block the next step
             else:
                 self.run_auto_B.setEnabled(False)
                 self.noti_box.setText("Parking lot is not defined. Please define parking lot before run!")
 
+    # Add new parking lot if there is(are) ones added through Define New Parking Lot
     def add_parking_lot_list(self):
+        # Read new parking lot name from a temporary file
         temp_parking_lots = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), "r+")
         new_parking_lots = temp_parking_lots.read()
-
+        # If there are data within the temporary file, append them to the available parking lot list
         if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
             self.avail_parklot.addItem(new_parking_lots)
             # temp_parking_lots.truncate(0)
             temp_parking_lots.close()
 
+    # Delete parking lot if there is(are) one(s) deleted through Adjust Parking Lot
     def delete_parking_lot(self, delete_name):
+        # If a parking lot(s) is indicated, find it(them) on the available parking lot list
         if delete_name != "":
+            # Add deleted one(s) into a temporary list
             delete_item = self.avail_parklot.findItems(delete_name, Qt.MatchContains)
-            # print("Delete name: {}".format(delete_name))
-            # print(delete_item)
-
             for item in delete_item:
+                # Remove those from the available parking lot list
                 self.avail_parklot.takeItem(self.avail_parklot.row(item))
 
+    # Execute process parking lot auto function
+    # Static method means this function does not take the "self" as an argument
     @staticmethod
     def process_data():
         global ref_position_x, ref_position_y
         global reference_filename
-
+        # If a parking lot is selected
         if select_parking_lot != "":
+            # Get landmarks information from defined data of the parking lot
             run_flag = window_show_result.get_landmark_coordinates(select_parking_lot)
+            # If the data is valid, run image calibration
             if run_flag:
+                # Get reference image information
                 reference_image_container = "{}\\{}\\defined_parking_lot.txt".format(data_process_dir,
                                                                                      select_parking_lot)
                 f_reference_file = open(reference_image_container, 'r+')
                 lines = f_reference_file.readlines()
                 target_content = lines[0]
                 reference_filename = target_content.replace("Reference Image: ", "").replace("\n", "")
-                print(reference_filename)
+                # Set up standard image at the Show Result window
                 window_show_result.setup_standard_image()
-
                 # Run image calibration
                 window_show_result.image_calibration()
                 # window_show_result.setup_calibrated_image()
-
+            # Move to Show Result window
             window.setCurrentWidget(window_show_result)
+            # Disable Back to Define mode button, as the program is running automatically
             window_show_result.back_to_def_B.setEnabled(False)
             window_show_result.back_to_def_B.setStyleSheet("background-color: rgb(150, 150, 150)")
 
+    # Move back to Welcome window
     @staticmethod
     def to_welcome():
         window.setCurrentWidget(window_starting)
 
+    # Move to Define New Parking Lot window
     @staticmethod
     def to_define_new():
         window.setCurrentWidget(window_define_new)
@@ -369,79 +382,86 @@ class process_parking_lot_auto(QMainWindow):
 
 # 2.3 > Adjust available parking lot
 class adjust_parking_lot(QMainWindow):
-
+    # Initiate Adjust Parking Lot window on application execution
     def __init__(self):
         super(adjust_parking_lot, self).__init__()
         uic.loadUi(gui_dir + '\\adjust-parking-lot.ui', self)
-
+        # Append all available parking lot to list widget
         for name in available_parking_lots:
             self.avail_pl_list.addItem(name)
-
+        # Connect buttons to their functions
         self.adjust_B.clicked.connect(self.to_image_browse)
         self.back_B.clicked.connect(self.to_welcome)
         self.delete_B.clicked.connect(self.delete_lot)
-
+        # Connect list widget selection to flow control function
+        # If no parking lot is selected, the program will block access to the next step
         self.avail_pl_list.itemSelectionChanged.connect(self.enable_disable_adjust)
-        # if self.avail_pl_list.currentItem() == None:
-        #     self.adjust_B.setEnabled(False)
-        # else:
-        #     self.adjust_B.setEnabled(True)
+        # Update flow control 
         self.enable_disable_adjust()
-        self.refresh_parking_lot_list()
-
-        # self.show()
-
+        # self.refresh_parking_lot_list()
+    
+    # Move to Image browser window, using current selected parking lot
     def to_image_browse(self):
         global select_parking_lot
-
+        # Get parking lot name from list selection
         select_parking_lot = self.avail_pl_list.currentItem().text()
-
+        # Move to Image Browser window
         window.setCurrentWidget(window_image_browser)
 
+    # Move back to Welcome window
     def to_welcome(self):
+        # Clear current option
         self.avail_pl_list.setCurrentItem(None)
-
+        # Move to Welcome window
         window.setCurrentWidget(window_starting)
 
+    # Check if any parking lot is selected. If not, block the next step
     def enable_disable_adjust(self):
+        # If current selected item is blank/None, block the next step
         if self.avail_pl_list.currentItem() is None:
             self.adjust_B.setEnabled(False)
             self.delete_B.setEnabled(False)
+        # Else allow access
         else:
             self.adjust_B.setEnabled(True)
             self.delete_B.setEnabled(True)
 
+    # Delete selected parking lot from the list, as well as its data
     def delete_lot(self):
         global select_parking_lot
         global available_parking_lots, avail_lot_is_empty
-
+        # Get parking lot name to delete
         delete_lot_name = self.avail_pl_list.currentItem().text()
+        # If the parking lot name is not blank/empty string
         if delete_lot_name != "":
+            # Remove all data belongs to the parking lot (directory tree & files)
             folder_file_action.remove_all_contents("{}\\data_process\\{}".format(parent, delete_lot_name))
+            # Remove the parking lot from saved parking lot list
             folder_file_action.file_clear_specific_content(parent, "available_parking_lot.txt", delete_lot_name)
+            # Remove from the selection list
             list_item = self.avail_pl_list.selectedItems()
             if list_item is not None:
                 for item in list_item:
                     self.avail_pl_list.takeItem(self.avail_pl_list.row(item))
-            # Debug:
-            # print("Deleted {} parking lot with all data".format(delete_lot_name))
-
+            # Update the current available parking lot list
             available_parking_lots, avail_lot_is_empty = folder_file_action.file_open_avail_parking_lot(parent)
-
+            # Clear current parking lot name
             select_parking_lot = ""
-
-        self.refresh_parking_lot_list()
+        # Update parking lot list/Check if this line is necessary
+        # self.refresh_parking_lot_list()
+        # Delete the corresponding parking lot from Process Parking Lot Auto menu
         window_run_auto.delete_parking_lot(delete_lot_name)
 
+    # Add new parking lot to the list widget
     def refresh_parking_lot_list(self):
-        # Debug: Check working condition
-        # Note: Should change print command to log, for debug purposes
-        # print("Refresh list running")
+        # Get temporary new parking lots
         temp_parking_lots = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), "r+")
         new_parking_lots = temp_parking_lots.read()
-
+        # If the temporary parking lot file is not empty, add all entity from the file
         if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
             self.avail_pl_list.addItem(new_parking_lots)
+            # Truncate the file (clear contents after adding)
+            # This line should be deprecated!
             temp_parking_lots.truncate(0)
             temp_parking_lots.close()
 
@@ -450,39 +470,52 @@ class adjust_parking_lot(QMainWindow):
 class image_browser(QMainWindow):
     global reference_filename
 
+    # Initiate Image Browser window on application execution
     def __init__(self):
         super(image_browser, self).__init__()                       # Call the inherited classes __init__ method
         uic.loadUi(gui_dir + '\\select-reference-image.ui', self)   # Load the .ui file
-
+        # Connect buttons to their functions
         self.next_B.clicked.connect(self.define_park_lot)
         self.browse_B.clicked.connect(self.browse_image)
         self.reset_image_B.clicked.connect(self.reset_image)
         self.cam_image_B.clicked.connect(self.camera_capture)
-
         self.back_B.clicked.connect(self.to_adjust)
+        # Connect reference image path box to flow control function
+        # If the reference image path is empty, or invalid, block the next step
         self.image_name.cursorPositionChanged.connect(self.check_reference_image)
         # Disable next button as default
         self.next_B.setEnabled(False)
 
+    # Move back to Adjust Parking Lot window
     def to_adjust(self):
         self.reset_image()
         window.setCurrentWidget(window_adjust)
 
+    # Check the availability of the reference image
     def check_reference_image(self):
+        # If the image path is empty, block the next step
         if self.image_name.text() == "":
             self.next_B.setEnabled(False)
         else:
-            self.next_B.setEnabled(True)
+            image_path = self.image_name.text()
+            # If the image path leads to a valid file
+            if os.path.isfile(image_path):
+                self.next_B.setEnabled(True)
+            # Else block the next step
+            else:
+                self.next_B.setEnabled(False)
 
+    # Move to Define Parking Lot window
     @staticmethod
     def define_park_lot():
-        # print(reference_filename)
         global reference_filename
-
+        # If the reference image file path is blank/empty string, do nothing
         if reference_filename == "":
             return
-
+        # Else save the reference image to the standard image directory of the current parking lot
+        # Get time stamp of the definition
         time_stamp = folder_file_action.get_time_stamp()
+        # Read and write the image at the selection time
         reference_image = cv2.imread(reference_filename)
         write_path = "{}\\data_process\\{}\\std\\{}_std_{}.jpg".format(parent,
                                                                        select_parking_lot,
@@ -490,32 +523,34 @@ class image_browser(QMainWindow):
                                                                        time_stamp
                                                                        )
         cv2.imwrite(write_path, reference_image)
-
+        # Write the reference image path to a storage file
         parking_lot_defined = open("{}\\data_process\\{}\\defined_parking_lot.txt".format(parent,
                                                                                           select_parking_lot
                                                                                           ), "w+")
         parking_lot_defined.write("Reference Image: {}\n".format(write_path))
         parking_lot_defined.close()
+        # Set reference image path
         reference_filename = write_path
-
+        # Move to Define Parking Lot window
         window.setCurrentWidget(window_define_parking_lot)
+        # Set up the reference image file for definition on the window
         window_define_parking_lot.setup_image()
 
+    # Browse for reference image
     def browse_image(self):
         global reference_filename
-
-        # print("Browsing for reference image")
+        # Restrict available files to image file only
         filename = QFileDialog.getOpenFileName(self, 'Select File', parent, 'Images (*.png;*.jpg;*.jpeg)')
+        # Get image path, set to the image name box
         self.image_name.setText(filename[0])
-        # print(filename)
-        # print(filename[0])
+        # Set reference file path to selected image
         reference_filename = filename[0]
+        # Set up image preview box
         pixmap = QPixmap(filename[0])
         self.image_disp.setPixmap(pixmap)
         self.image_disp.setScaledContents(True)
 
-        # print(reference_filename)
-
+    #
     def reset_image(self):
         global reference_filename
 
@@ -530,12 +565,13 @@ class image_browser(QMainWindow):
 
         # print("Capture from Camera")
         # Import additional function to access the camera
-        # Fix after retrieve the camera for an another test
+        ### This function should be fixed soon
         reference_filename = parent + '\\images\\camera-capture-dummy.jpg'
         pixmap = QPixmap(reference_filename)
         self.image_disp.setPixmap(pixmap)
         self.image_disp.setScaledContents(True)
         self.image_name.setText("Capture from Camera")
+        self.next_B.setEnabled(True)
 
 
 class define_parking_lot(QMainWindow):
@@ -564,41 +600,28 @@ class define_parking_lot(QMainWindow):
         self.saveplot_B.clicked.connect(self.get_parking_slot_index)
         self.save_roi_B.clicked.connect(self.get_region_of_interest)
 
-        self.setup_image()
-
     def setup_image(self):
 
         global reference_filename
 
         if reference_filename != "":
+
             input_image = cv2.imread(reference_filename)
-
             resized_image = cv2.resize(input_image, (960, 540))
-            # print(self.image_disp.width(), self.image_disp.height())
-
             height, width, bytes_per_component = resized_image.shape
-            # print(height, width)
             bytes_per_line = 3 * width
-            # print(bytes_per_line)
             cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB, resized_image)
-            # print("pass cvtColor")
 
             q_image = QtGui.QImage(resized_image.data, width, height, bytes_per_line, QtGui.QImage.Format_RGB888)
-            # print("pass QImage")
-
             pixmap = QtGui.QPixmap.fromImage(q_image)
-            # print("pass pixmap")
-            self.image_editor.setPixmap(pixmap)
-            # self.image_disp.setScaledContents(True)
-            # print("pass set pixel map")
 
-            self.image_editor = image_painter(self.image_disp)
+            self.image_editor.setPixmap(pixmap)
+
+            # self.image_editor = image_painter(self.image_disp)
             self.image_editor.setCursor(QtCore.Qt.CrossCursor)
 
-            self.image_editor.update()
+            # self.image_editor.update()
 
-            # self.show()
-            # reload_menu.cancel()
     def enable_next_step(self):
         if ref_position_x[1] != 0 and ref_position_x[2] != 0 and ref_position_x[3] != 0 and ref_position_x[4] != 0:
             self.next_B.setEnabled(True)
@@ -679,8 +702,10 @@ class define_parking_lot(QMainWindow):
         end_roi_x = end_point_x
         end_roi_y = end_point_y
 
-        add_string = "RoI : {} {}, {} {}".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y)
-        self.listWidget.addItem(add_string)
+        add_string = "RoI: {} {}, {} {}".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y)
+        add_item = QListWidgetItem(add_string)
+        self.listWidget.addItem(add_item)
+        self.listWidget.setCurrentItem(add_item)
 
         return
 
@@ -693,9 +718,14 @@ class define_parking_lot(QMainWindow):
         else:
             current_string = self.listWidget.currentItem().text()
             # Return True & current item information
+            # Remove colon ':' symbol
             temp_item = current_string.split(':')
             temp_string = "{}{}".format(temp_item[0], temp_item[1])
+            # Remove hyphen ',' symbol
+            temp_item = temp_string.split(',')
+            temp_string = "{}{}".format(temp_item[0], temp_item[1])
 
+            # Split string using white space, return list of values
             selected_items = temp_string.split(' ')
 
             return True, selected_items
@@ -746,18 +776,18 @@ class define_parking_lot(QMainWindow):
             if values[0] == "RoI":
                 add_string = "RoI: {} {}, {} {}".format(values[1], values[2], values[3], values[4])
             else:
-                add_string = "{} {}: {} {}".format(values[0], values[1], values[2], values[3])
+                add_string = "{} {}: {}, {}".format(values[0], values[1], values[2], values[3])
 
             add_item = QListWidgetItem(add_string)
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
 
             if values[0] == "Landmark":
-                ref_position_x[int(values[1])] = int((values[2].split(","))[0])
+                ref_position_x[int(values[1])] = int(values[2])
                 ref_position_y[int(values[1])] = int(values[3])
 
             elif values[0] == "Slot":
-                slot_position_x[int(values[1])] = int((values[2].split(","))[0])
+                slot_position_x[int(values[1])] = int(values[2])
                 slot_position_y[int(values[1])] = int(values[3])
 
         self.enable_next_step()
@@ -814,11 +844,11 @@ class reset_prompt(QDialog):
         global number_of_slot
         global action_queue
 
-        # Reset reference position, but do not delete their members since they need to be persist
+        # Reset reference position, but do not delete their members
         for index in range(1, 5):
             ref_position_x[index] = 0
             ref_position_y[index] = 0
-        # Reset slot position list, delete all members since it needs to be redefine if reset
+        # Reset slot position list, delete all members
         slot_position_x.clear()
         slot_position_y.clear()
         number_of_slot = 0
@@ -1006,8 +1036,8 @@ class show_result(QMainWindow):
         number_of_calibrated_file, filename = self.get_calibrated_images()
 
         last_calib_image = "{}\\{}\\calib\\{}".format(data_process_dir,
-                                                       select_parking_lot,
-                                                       filename[image_index])
+                                                      select_parking_lot,
+                                                      filename[image_index])
 
         calibrated_image_pixmap = QPixmap(last_calib_image)
         self.calib_image_disp.setPixmap(calibrated_image_pixmap)
@@ -1051,7 +1081,7 @@ class show_result(QMainWindow):
 
             # Start autorun procedure
             if image_index <= max_image_index - 1:
-                run_timer = threading.Timer(2, self.auto_run)
+                run_timer = threading.Timer(5, self.auto_run)
                 run_timer.start()
 
                 return
