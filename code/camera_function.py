@@ -10,7 +10,7 @@ import folder_file_manipulation as ff_manip
 # These values should have a better way to get values
 rtsp_user = "admin"
 rtsp_password = "bk123456"
-ip_address = "192.168.30.115"
+ip_address = "192.168.0.115"
 access_port = "554"
 device_number = "1"
 # Define image dimensions (width, height), in case of multiple input with different dimensions:
@@ -37,18 +37,11 @@ def image_capture(rtsp):
 	# capture.set(10, 100)
 	# Read the captured image
 	read_status, image_data = capture.read()
-	if read_status:
-		# If image get an another input and does not match with the current designated resolution/dimensions
-		# image = cv2.resize(image_data, image_dimension)
-		image = image_data
-		# Debug:
-		# print("Image successfully captured")
-	else:
-		print("Read status: {}".format(read_status))
-		print("Image not captured, please check the connection or the hardware")
-		image = None
 
-	return read_status, image
+	if not read_status:
+		image_data = None
+
+	return read_status, image_data
 
 
 def image_save_path(path, input_name, image_type):
@@ -68,9 +61,6 @@ def main_camera_function(path, input_name, image_type):
 
 	# Get the image data from live camera
 	read_flag, image_data = image_capture(rtsp_hyperlink)
-	# Debug:
-	# cv2.imshow("Image", image_data)
-	# cv2.waitKey(50)
 
 	if read_flag:
 		time_stamp = ff_manip.get_time_stamp()
@@ -79,8 +69,27 @@ def main_camera_function(path, input_name, image_type):
 		image_path = os.path.join(current_save_path, image_name)
 		# Write the image
 		cv2.imwrite(image_path, image_data)
+
+		return True, image_path
 	else:
 		print("Get image data failed!")
+
+		return False, ""
+
+
+def auto_run_camera_capture(rtsp, parent, input_parking_lot):
+	image_path = image_save_path(parent, input_parking_lot, "org")
+	image_name = "{}_{}_{}.jpg".format("org", input_parking_lot, ff_manip.get_time_stamp())
+	image_root = os.path.join(image_path, image_name)
+	read_flag, image_data = image_capture(rtsp)
+
+	if read_flag:
+		cv2.imwrite(image_root, image_data)
+		print("Image written")
+		return True, image_data, image_root, image_name
+	else:
+		return False, None, "", ""
+
 
 # Test code
 # Initiate values, for testing only
@@ -90,7 +99,7 @@ def main_camera_function(path, input_name, image_type):
 # runtime_variable = 0
 # duration = 60
 # # Execute main function!
-# main_camera_function(parent_path, parking_lot, img_type, runtime_variable, duration)
+# main_camera_function(parent_path, parking_lot, img_type)
 
 # Notes:
 # Average capture time: around 1.5s/picture -> 40 pictures/minutes

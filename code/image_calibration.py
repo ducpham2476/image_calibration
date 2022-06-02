@@ -10,16 +10,24 @@ import math
 import landmark_recognition
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 # Define main function - Image Calibration
-# Inputs:
-# parent_path: Top working directory of the program, used for file navigation
-# image_data: Read image data from saved location
-# parklot_name: Passed parking lot name, might be new name or available name selected
-# mode: Calibration mode, 0 for both translation and rotation, 1 for translation, 2 for rotation
-# filename: Image data's path, used to extract the name
-# current_status: Landmarks' status, informing which landmark is available for calibration
-# ref_x, ref_y: Reference landmarks' positions
-# cur_x, cur_y: Current image landmarks' positions
+# Input(s):
+# - parent_path: Top working directory of the program, used for file navigation
+# - image_data: Read image data from saved location
+# -	parklot_name: Passed parking lot name, might be new name or available name selected
+# - mode: Calibration mode, 0 for both translation and rotation, 1 for translation, 2 for rotation
+# - filename: Image data's path, used to extract the name
+# - current_status: Landmarks' status, informing which landmark is available for calibration
+# - ref_x, ref_y: Reference landmarks' positions
+# - cur_x, cur_y: Current image landmarks' positions
+
+# Return value(s):
+# - flag: trans_flag (translation flag) and rot_flag (rotation flag), used to determine the output image has been
+# 			calibrated or not
+# - save_path: calibrated image write path, reduce the usage of parsing the calibrated folder for the newly calibrated
+#			image
+# ----------------------------------------------------------------------------------------------------------------------
 def image_calibration(
 		parent_path, image_data, parklot_name, mode, filename, current_status, ref_x, ref_y, cur_x, cur_y
 ):
@@ -354,9 +362,9 @@ def image_calibration(
 		# Avoid using static addresses, try using environment variable instead!
 		result_path = path + "\\data_process\\{}\\calib".format(parklot_name)              # Image save path
 		name = os.path.splitext(filename)[0]                            # Separate filename, remove the extension
-		cv2.imwrite(os.path.join(
-			result_path, 'recov_{}_({}_{}_{}).jpg'.format(name, translation_x, translation_y, angle)), image_out
-		)
+		write_image_path = os.path.join(result_path, 'recov_{}_({}_{}_{}).jpg'.
+										format(name, translation_x, translation_y, angle))
+		cv2.imwrite(write_image_path, image_out)
 		# Log debug information
 		f_debug = open(path + "\\data_process\\{}\\debug.txt".format(parklot_name), 'a+')
 		f_debug.write("{}\n".format(datetime.datetime.now()))
@@ -372,6 +380,8 @@ def image_calibration(
 			f_debug.write(filename + " not recovered, please check the camera/input\n")
 		f_debug.write("\n")
 		# print("")
+
+		return write_image_path
 
 	# Initiate calibration flags
 	rot_flag = trans_flag = False
@@ -403,32 +413,33 @@ def image_calibration(
 		if rot_flag & trans_flag is False:
 			trans_image = rot_image
 		# Save image as file
-		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
+		save_path = save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
 
 		# Return image calibration signal
 		if rot_flag & trans_flag is True:
-			return True
+			return True, save_path
 		else:
-			return False
+			return False, save_path
 		
 	# In case of running image rotation calibration only:
 	elif mode == 1:
 		trans_x = 0
 		trans_y = 0
 		rot_image, rot_angle, rot_flag = rotation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
-		save_image(parent_path, rot_image, r_case, trans_x, trans_y, rot_angle)
+		save_path = save_image(parent_path, rot_image, r_case, trans_x, trans_y, rot_angle)
 
-		return rot_flag
+		return rot_flag, save_path
 
 	# In case of running image translation calibration only:
 	elif mode == 2:
 		trans_image, trans_x, trans_y, trans_flag =\
 			translation(process_image, r_case, ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y)
 		rot_angle = 0
-		save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
+		save_path = save_image(parent_path, trans_image, r_case, trans_x, trans_y, rot_angle)
 
-		return trans_flag
+		return trans_flag, save_path
 
 	# Other than previous listed cases (Redundant)
 	else:
-		return rot_flag & trans_flag
+		return rot_flag & trans_flag, ""
+# ----------------------------------------------------------------------------------------------------------------------

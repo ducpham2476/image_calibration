@@ -10,11 +10,6 @@ def create_data_process(parent_path):
     if not path.exists(parent_path + "\\data_process"):
         os.mkdir("data_process")
         # print("Data directory created!")
-    else:
-        # Debug: Print return notification
-        # print("Data directory already exists!")
-        pass
-
 
 # Create required working directory if needed
 def folder_manip(parent_path, input_name):
@@ -101,6 +96,7 @@ def file_manip(parent_path, input_name):                # Making log files for f
     file_make("defined_parking_lot.txt")
     file_make("landmarks.txt")
     file_make("parking_slots.txt")
+    file_make("roi.txt")
     # file_make("avail_parking_lot.txt")
 
     # Create files to store parking lot data
