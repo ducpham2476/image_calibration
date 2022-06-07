@@ -11,6 +11,7 @@ def create_data_process(parent_path):
         os.mkdir("data_process")
         # print("Data directory created!")
 
+
 # Create required working directory if needed
 def folder_manip(parent_path, input_name):
     # Debug: Data parent working directory
@@ -229,7 +230,7 @@ def file_name_modify(string):
     return result_string
 
 
-# Remove all folder content before an another run, to avoid image show errors
+# Remove all folder content before another run, to avoid image show errors
 # A better approach to file management is recommended. Deleting files is not recommended.
 def remove_folder_content(address):
     for filename in os.listdir(address):
@@ -264,5 +265,3 @@ def remove_all_contents(address):
             break
     # Remove the original top address
     os.rmdir(address)
-    # Debug:
-    # print("{} has been removed from the system".format(address))

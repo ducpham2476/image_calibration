@@ -30,10 +30,13 @@ def find_landmark(image_data):
 	image_hsv = cv2.cvtColor(image_copy, cv2.COLOR_BGR2HSV)
 	image_mask = cv2.inRange(image_hsv, im_lower, im_upper)
 	image_mask = cv2.morphologyEx(image_mask, cv2.MORPH_OPEN, kernel)
-
-	# Debug:
+	image_mask = cv2.dilate(image_mask, kernel, iterations=2)
+	# cv2.imshow("Image mask", image_mask)
+	# cv2.waitKey()
+	#
+	# # Debug:
 	# image_mask_show = image_mask
-	# Check image mask
+	# # Check image mask
 	# cv2.imshow("Image mask", image_mask_show)
 	# cv2.waitKey()
 
@@ -48,22 +51,22 @@ def find_landmark(image_data):
 		# Define contour bounding box
 		x, y, w, h = cv2.boundingRect(c)
 		# Defined range for landmark 1
-		if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (15 < w < 70) and (10 < h < 60):
+		if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (20 < w < 70) and (15 < h < 60):
 			current_x[1] = x + (w // 2)
 			current_y[1] = y + (h // 2)
 			current_status[1] = current_status[1] + 1
 		# Defined range for landmarks 2
-		elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (15 < w < 70) and (10 < h < 60):
+		elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (20 < w < 70) and (15 < h < 60):
 			current_x[2] = x + (w // 2)
 			current_y[2] = y + (h // 2)
 			current_status[2] = current_status[2] + 1
 		# Defined range for landmarks 3
-		elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (20 < w < 80) and (20 < h < 60):
+		elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (20 < w < 80) and (25 < h < 60):
 			current_x[3] = x + (w // 2)
 			current_y[3] = y + (h // 2)
 			current_status[3] = current_status[3] + 1
 		# Defined range for landmarks 4
-		elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (20 < w < 90) and (20 < h < 90):
+		elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (20 < w < 90) and (25 < h < 90):
 			current_x[4] = x + (w // 2)
 			current_y[4] = y + (h // 2)
 			current_status[4] = current_status[4] + 1
@@ -71,15 +74,19 @@ def find_landmark(image_data):
 	# print(current_status[1], current_status[2], current_status[3], current_status[4])
 	# If the number of contour found in one position is larger than 1, then the location is not determined!
 	if current_status[1] != 1:
+		print("Number of LM_1:", current_status[1])
 		current_x[1] = 0
 		current_y[1] = 0
 	if current_status[2] != 1:
+		print("Number of LM_2:", current_status[2])
 		current_x[2] = 0
 		current_y[2] = 0
 	if current_status[3] != 1:
+		print("Number of LM_3:", current_status[3])
 		current_x[3] = 0
 		current_y[3] = 0
 	if current_status[4] != 1:
+		print("Number of LM_4:", current_status[4])
 		current_x[4] = 0
 		current_y[4] = 0
 
@@ -139,14 +146,14 @@ def get_coordinate_std_file(input_path, input_name):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-# ------------------------------------------------------------------------------------ ----------------------------------
+# ------------------------------------------------------------------------------------ ---------------------------------
 def image_get_data(image_path, start_position_x, start_position_y, end_position_x, end_position_y):
 	# Read in reference image
 	image_data = cv2.imread(image_path)
 	cut = image_data
 
 	# Crop specific image data section
-	crop_image = cut[start_position_y:end_position_y,start_position_x:end_position_x]
+	crop_image = cut[start_position_y:end_position_y, start_position_x:end_position_x]
 	# cv2.imshow("Show me the crop", crop_image)
 
 	return crop_image
@@ -170,14 +177,22 @@ def landmark_definition(image_data):
 	for c in cur_cnt:
 		# Define contour bounding box
 		x, y, w, h = cv2.boundingRect(c)
-		M = cv2.moments(c)
+		moments = cv2.moments(c)
 
 		if largest_area < ((w-x)*(h-y)):
 			# position_x = int((2*x + w) / 2)
 			# position_y = int((2*y + h) / 2)
-			centroid_x = int(M["m10"] / M["m00"])
-			centroid_y = int(M["m01"] / M["m00"])
+			centroid_x = int(moments["m10"] / moments["m00"])
+			centroid_y = int(moments["m01"] / moments["m00"])
 			largest_area = ((w-x)*(h-y))
 
 	return centroid_x, centroid_y
 # ----------------------------------------------------------------------------------------------------------------------
+
+# Test code
+# image = cv2.imread(
+# 	"D:\\PL_GUI\\data_process\\C9\\org\\org_C9_2022-06-02-15-53-08.jpg")
+# status, pos_x, pos_y = find_landmark(image)
+# print(status)
+# print(pos_x)
+# print(pos_y)

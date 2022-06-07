@@ -5,10 +5,8 @@ import cv2
 import imutils
 import datetime
 import math
-
 # Import additional packages/file
 import landmark_recognition
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Define main function - Image Calibration
@@ -23,10 +21,11 @@ import landmark_recognition
 # - cur_x, cur_y: Current image landmarks' positions
 
 # Return value(s):
-# - flag: trans_flag (translation flag) and rot_flag (rotation flag), used to determine the output image has been
-# 			calibrated or not
-# - save_path: calibrated image write path, reduce the usage of parsing the calibrated folder for the newly calibrated
-#			image
+# - flag: trans_flag (translation flag) and rot_flag (rotation flag), used to determine whether the output image
+# 	      has been calibrated or not
+# - save_path: calibrated image write path, stop parsing the calibrated folder for the newly calibrated image
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 def image_calibration(
 		parent_path, image_data, parklot_name, mode, filename, current_status, ref_x, ref_y, cur_x, cur_y
@@ -235,7 +234,11 @@ def image_calibration(
 
 		return shift_revert, translation_x, translation_y, translation_flag
 
-	def rotation_case(case, ref_midpoint_x, ref_midpoint_y, ref_xx, ref_yy, cur_midpoint_x, cur_midpoint_y, cur_xx, cur_yy):
+	def rotation_case(
+			case,
+			ref_midpoint_x, ref_midpoint_y, ref_xx, ref_yy,
+			cur_midpoint_x, cur_midpoint_y, cur_xx, cur_yy
+	):
 
 		standard_x_vector = [960, 0]
 		unit_x_vector = standard_x_vector / np.linalg.norm(standard_x_vector)
@@ -294,8 +297,10 @@ def image_calibration(
 			angle_final = round((angle[1] + angle[4]) / 2)
 			# If the current x[1] coordinate > reference x[1] coordinate, image has rotated clockwise, need to revert
 			# with a negative angle
-			if rotation_case(case, ref_midpoint_x, ref_midpoint_y, reference_x[1], reference_y[1],
-							 cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]) == "counter clockwise":
+			if rotation_case(
+					case, ref_midpoint_x, ref_midpoint_y, reference_x[1], reference_y[1],
+					cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]
+			) == "counter clockwise":
 				angle_final = -angle_final
 		# Debug: Print angle[1], angle[4] & angle_final
 		# print(angle[1], angle[4])
@@ -310,8 +315,10 @@ def image_calibration(
 				reference_x[3], reference_y[3], current_x[3], current_y[3]
 			)
 			angle_final = round((angle[2] + angle[3]) / 2)
-			if rotation_case(case, ref_midpoint_x, ref_midpoint_y, reference_x[1], reference_y[1],
-							 cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]) == "counter clockwise":
+			if rotation_case(
+					case, ref_midpoint_x, ref_midpoint_y, reference_x[1], reference_y[1],
+					cur_midpoint_x, cur_midpoint_y, current_x[1], current_y[1]
+			) == "counter clockwise":
 				angle_final = -angle_final
 		# Debug: Print angle[2], angle[3] & angle_final
 		# print(angle[2], angle[3])
@@ -362,8 +369,8 @@ def image_calibration(
 		# Avoid using static addresses, try using environment variable instead!
 		result_path = path + "\\data_process\\{}\\calib".format(parklot_name)              # Image save path
 		name = os.path.splitext(filename)[0]                            # Separate filename, remove the extension
-		write_image_path = os.path.join(result_path, 'recov_{}_({}_{}_{}).jpg'.
-										format(name, translation_x, translation_y, angle))
+		write_image_path = os.path.join(result_path,
+										'recov_{}_({}_{}_{}).jpg'.format(name, translation_x, translation_y, angle))
 		cv2.imwrite(write_image_path, image_out)
 		# Log debug information
 		f_debug = open(path + "\\data_process\\{}\\debug.txt".format(parklot_name), 'a+')

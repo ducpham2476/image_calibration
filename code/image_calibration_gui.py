@@ -50,7 +50,7 @@ data_process_dir = parent + "\\data_process"
 # Camera parameters:
 rtsp_user = "admin"
 rtsp_password = "bk123456"
-ip_address = "192.168.0.115"
+ip_address = "192.168.30.115"
 access_port = "554"
 device_number = "01"
 camera_rtsp = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + ip_address \
@@ -59,7 +59,7 @@ camera_rtsp = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + ip_address \
 # Define the standard image is inputted through an online camera
 std_camera_flag = False
 # Define that the input data is from the online camera
-calibrate_online_camera = True
+calibrate_online_camera = False
 
 # Change current working directory to top directory
 os.chdir(parent)
@@ -664,14 +664,11 @@ class image_browser(QMainWindow):
             return
 
 
-# 4 > Define parking lot window
+# 4 > Define Parking Lot window
 class define_parking_lot(QMainWindow):
-    # Access to current standard image
-    global reference_filename
 
-    # Define parking lot window initiation
+    # Initiate Define Parking Lot window on application execution
     def __init__(self):
-
         super(define_parking_lot, self).__init__()
         uic.loadUi(gui_dir + '\\define-parking-lot.ui', self)
         # Set image viewer box, overload with custom QLabel class
@@ -691,9 +688,11 @@ class define_parking_lot(QMainWindow):
         self.next_B.clicked.connect(self.to_result)
         self.next_B.setEnabled(False)
 
+    # Setup selected standard image to the image preview box
     def setup_image(self):
+        # Access to the global standard image path
         global reference_filename
-        # If reference image is not blank
+        # If reference image is a valid image
         if os.path.isfile(reference_filename):
             # Setup reference image for Parking lot definition
             input_image = cv2.imread(reference_filename)
@@ -701,77 +700,86 @@ class define_parking_lot(QMainWindow):
             height, width, bytes_per_component = resized_image.shape
             bytes_per_line = 3 * width
             cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB, resized_image)
-
+            # Set pixel map as the selected image
             q_image = QtGui.QImage(resized_image.data, width, height, bytes_per_line, QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(q_image)
-
+            # Overlay the image on to the designated QLabel
             self.image_editor.setPixmap(pixmap)
             self.image_editor.setCursor(QtCore.Qt.CrossCursor)
 
     # Check if the parking lot is defined or not. Enable next step only if the parking lot has enough information
     # for executing
     def enable_next_step(self):
+        # Access to global reference point positions
+        global ref_position_x, ref_position_y
         # Check if all landmarks are defined. If yes, enable next step
         if ref_position_x[1] != 0 and ref_position_x[2] != 0 and ref_position_x[3] != 0 and ref_position_x[4] != 0:
             self.next_B.setEnabled(True)
+        # Else, disable the next step as default
         else:
             self.next_B.setEnabled(False)
 
+    # Save landmark coordinates via image painter
     def get_landmark_index(self):
+        # Access to global variables: Bounding box start and end points, reference point coordinates,
+        # standard image path
         global start_point_x, start_point_y, end_point_x, end_point_y
         global ref_position_x, ref_position_y
         global reference_filename
 
+        # Get landmark index value
         index = int(input_dialog_prompt('landmark').get_data('landmark'))
+        # If the landmark index is within the acceptable range (from 1 to 4), enable auto landmark detection to increase
+        # the accuracy
         if index in range(1, 5):
-            # Deprecated formula
-            # ref_position_x[index] = int((start_point_x + end_point_x)/2)
-            # ref_position_y[index] = int((start_point_y + end_point_y)/2)
-
+            # Find the biggest yellow landmark within the small image defined by the boundaries
+            # Get the small image cut out from the large standard image
             small_image = \
                 landmark_action.image_get_data(reference_filename,
                                                start_point_x,
                                                start_point_y,
                                                end_point_x,
                                                end_point_y)
-            # cv2.imshow("check window", small_image)
-            # cv2.waitKey()
+            # Calculate the x-coordinate and y-coordinate offset of the landmark centroid from the small image
             x_offset, y_offset = landmark_action.landmark_definition(small_image)
-
+            # Calculate the position of the landmark accordingly to the standard image
             ref_position_x[index] = start_point_x + x_offset
             ref_position_y[index] = start_point_y + y_offset
-
+            # Write the information onto GUI
             add_string = "Landmark {}: {}, {}".format(index, ref_position_x[index], ref_position_y[index])
-
             add_item = QListWidgetItem(add_string)
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
-
+        # Run the checker to enable the next step
         self.enable_next_step()
 
+    # Save parking slot coordinates via image painter
     def get_parking_slot_index(self):
+        # Access to global variables: Bounding box start and end points, parking slot start and end coordinates,
+        # number of available parking slot on the field
         global start_point_x, start_point_y, end_point_x, end_point_y
         global number_of_slot
         global slot_position_x, slot_position_y
-
+        # If the parking lot has no parking slot (value == 0), enable prompt to get the number of parking slots first
         if number_of_slot == 0:
             number_of_slot = int(input_dialog_prompt('number_of_parkslot').get_data('number_of_parkslot'))
-
+            # If number of slot is a valid natural number, append to the current slot position lists an amount
+            # of participants equals to the number of slot
             if number_of_slot > 0:
                 for index in range(0, int(number_of_slot + 1)):
                     slot_position_x.append(0)
                     slot_position_y.append(0)
+            # Else break the input phase since the input is invalid
             else:
-                # Break the input phase since the input is invalid
-                return
 
+                return
+        # Get parking lot slot index value
         slot_index = int(input_dialog_prompt('parkslot').get_data('parkslot'))
+        # If the index is in the valid range (defined value above), get the slot centroid as slot position
         if slot_index in range(1, int(number_of_slot + 1)):
             slot_position_x[slot_index] = int((start_point_x + end_point_x) / 2)
-            # print(ref_position_x[index])
             slot_position_y[slot_index] = int((start_point_y + end_point_y) / 2)
-            # print(ref_position_y[index])
-
+            # Write the saved information to the GUI
             add_string = "Slot {}: {}, {}".format(slot_index,
                                                   slot_position_x[slot_index],
                                                   slot_position_y[slot_index]
@@ -780,163 +788,204 @@ class define_parking_lot(QMainWindow):
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
 
+    # Save Region of Interest on the image via image painter
     def get_region_of_interest(self):
+        # Access to global variables: Bounding box start and end points, region of interest coordinates
         global start_point_x, start_point_y, end_point_x, end_point_y
         global start_roi_x, start_roi_y
         global end_roi_x, end_roi_y
 
+        # Save the values
         start_roi_x = start_point_x
         start_roi_y = start_point_y
         end_roi_x = end_point_x
         end_roi_y = end_point_y
 
+        # Write saved values to the GUI
         add_string = "RoI: {} {}, {} {}".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y)
         add_item = QListWidgetItem(add_string)
         self.listWidget.addItem(add_item)
         self.listWidget.setCurrentItem(add_item)
 
-        # Write ROI infomation to save file
+        # Write ROI information to save file
         f_roi = open("{}\\data_process\\{}\\roi.txt".format(parent, select_parking_lot), 'w+')
         f_roi.write("{} {} {} {}".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y))
         f_roi.close()
 
         return
 
+    # Manipulate text values that appear on the parking lot definition list. Used in Undo/Redo actions.
+    # Applies to landmark coordinates, parking slot coordinates, region of interest
     def text_manipulation(self):
+        # Get current list selection
         current_list_selection = self.listWidget.currentItem()
-
+        # If no item of the list is selected, return False & take no action later on
         if current_list_selection is None:
-            # Return False, take no action later on
+
             return False, None
+        # Else grab the text value of the selection, return True & current item information
         else:
             current_string = self.listWidget.currentItem().text()
-            # Return True & current item information
             # Remove colon ':' symbol
             temp_item = current_string.split(':')
             temp_string = "{}{}".format(temp_item[0], temp_item[1])
             # Remove hyphen ',' symbol
             temp_item = temp_string.split(',')
             temp_string = "{}{}".format(temp_item[0], temp_item[1])
-
             # Split string using white space, return list of values
             selected_items = temp_string.split(' ')
 
             return True, selected_items
 
+    # Undo previous parking lot defining action
     def undo_action(self):
+        # Access to global values:
+        # - action_queue: A list of performed actions: Save landmark/Save parking slot/Save Region of Interest
+        # - ref_position_x, ref_position_y: Reference landmark positions
+        # - slot_position_x, slot_position_y: Parking slot positions
+        # - *_roi_*: Region of interest position
         global action_queue
         global ref_position_x, ref_position_y
         global slot_position_x, slot_position_y
         global start_roi_x, start_roi_y, end_roi_x, end_roi_y
-
+        # Get the action flag (check if there was any action performed), together with its values
         action_flag, values = self.text_manipulation()
-
+        # If there was at least one action
         if action_flag:
+            # If the undo button is executed more than 50 times, do nothing & return to the main program
             if len(action_queue) > 50:
-                # If the action queue has more than 50 entries, do nothing & return to the main program
-                return
 
+                return
+            # Add extracted values to the action queue, serves as the basic material for building back the action
             action_queue.append(values)
+            # Remove the action's entry on the list appears on the menu
             current_row = self.listWidget.currentRow()
             self.listWidget.takeItem(current_row)
-
             # Check which type of data was taken, delete the corresponding data from the program
+            # Landmark:
             if values[0] == "Landmark":
                 ref_position_x[int(values[1])] = 0
                 ref_position_y[int(values[1])] = 0
-
+            # Parking slot:
             elif values[0] == "Slot":
                 slot_position_x[int(values[1])] = 0
                 slot_position_y[int(values[1])] = 0
-
+            # Region of interest:
             elif values[0] == "RoI":
                 start_roi_x = start_roi_y = end_roi_x = end_roi_y = 0
-
+            # Check if the landmarks condition still meets? All four of the landmarks need to be defined!
             self.enable_next_step()
 
         return
 
+    # Redo previous parking lot defining action
     def redo_action(self):
-
+        # Access to global values:
+        # - action_queue: A list of performed actions: Save landmark/Save parking slot/Save Region of Interest
+        # - ref_position_x, ref_position_y: Reference landmark positions
+        # - slot_position_x, slot_position_y: Parking slot positions
+        # - *_roi_*: Region of interest position
         global action_queue
         global ref_position_x, ref_position_y
         global slot_position_x, slot_position_y
         global start_roi_x, start_roi_y, end_roi_x, end_roi_y
 
+        # If action_queue has at least an action stored within, put that action back to the parking lot definition
         if len(action_queue) != 0:
+            # Remove the action from the action_queue
             values = action_queue.pop()
-
+            # If the action was defining the Region of interest, the string format is different from the rest
             if values[0] == "RoI":
+                # Adding the values back to their respective container
+                start_roi_x = values[1]
+                start_roi_y = values[2]
+                end_roi_x   = values[3]
+                end_roi_y   = values[4]
+                # Define the string to add back to the list
                 add_string = "RoI: {} {}, {} {}".format(values[1], values[2], values[3], values[4])
             else:
-                add_string = "{} {}: {}, {}".format(values[0], values[1], values[2], values[3])
+                # Adding the values back to their respective container
+                if values[0] == "Landmark":
+                    ref_position_x[int(values[1])] = int(values[2])
+                    ref_position_y[int(values[1])] = int(values[3])
 
+                elif values[0] == "Slot":
+                    slot_position_x[int(values[1])] = int(values[2])
+                    slot_position_y[int(values[1])] = int(values[3])
+                # Define the string to add back to the list
+                add_string = "{} {}: {}, {}".format(values[0], values[1], values[2], values[3])
+            # Append the action back to the action list on the menu
             add_item = QListWidgetItem(add_string)
             self.listWidget.addItem(add_item)
             self.listWidget.setCurrentItem(add_item)
-
-            if values[0] == "Landmark":
-                ref_position_x[int(values[1])] = int(values[2])
-                ref_position_y[int(values[1])] = int(values[3])
-
-            elif values[0] == "Slot":
-                slot_position_x[int(values[1])] = int(values[2])
-                slot_position_y[int(values[1])] = int(values[3])
-
+        # Check if the landmarks condition still meets? All four of the landmarks need to be defined!
         self.enable_next_step()
 
         return
 
+    # Reset/Delete all parking lot defining action(s)
     @staticmethod
     def reset_action():
+        # Run the reset prompt
         reset_prompt()
 
+    # Return to Select reference image Window
     @staticmethod
     def select_reference_image():
         window.setCurrentWidget(window_image_browser)
 
+    # Execute Image Calibration main function, then move to the Show result Window
     @staticmethod
     def to_result():
-        if (ref_position_x is not None) and (slot_position_x is not None):
-            write_landmarks = open("{}\\data_process\\{}\\landmarks.txt".format(parent, select_parking_lot),
-                                   'w+')
+        # If there are new data about the landmark positions, write to the save file
+        if ref_position_x is not None:
+            write_landmarks = open("{}\\data_process\\{}\\landmarks.txt".format(parent, select_parking_lot), 'w+')
             for index in range(1, 5):
                 write_landmarks.write("{} {}\n".format(ref_position_x[index], ref_position_y[index]))
             write_landmarks.close()
 
+        # If there are new data about the parking slot positions, write to the save file
+        if slot_position_x is not None:
             write_parking_slot = open("{}\\data_process\\{}\\parking_slots.txt".format(parent, select_parking_lot),
                                       'w+')
             for index in range(1, int(number_of_slot + 1)):
                 write_parking_slot.write("{} {} {}\n".format(index, slot_position_x[index], slot_position_y[index]))
             write_parking_slot.close()
 
+        # Run image calibration once, then move to the Show result Window
         window_show_result.image_calibration()
         window_show_result.setup_standard_image()
-        # window_show_result.setup_calibrated_image()
-
         window.setCurrentWidget(window_show_result)
 
 
+# Reset/Delete all parking lot define action - prompt, a derived class of QDialog
 class reset_prompt(QDialog):
-
+    # Reset prompt initiation upon object creation
     def __init__(self):
         super(reset_prompt, self).__init__()
         uic.loadUi('{}\\reset-prompt.ui'.format(gui_dir), self)
-
+        # Set prompt name & icon
         self.setWindowTitle("Reset all data?")
         self.setWindowIcon(QtGui.QIcon("{}\\icons\\warning_icon.png".format(gui_dir)))
+        # Connect buttons to their respective functions
         self.yes_B.clicked.connect(self.reset_all_data)
         self.no_B.clicked.connect(self.close_reset_prompt)
-
+        # Execute the prompt
         self.exec_()
 
+    # If yes, reset all data
     def reset_all_data(self):
+        # Access to global variables:
+        # - ref_position_*: Landmark positions
+        # - slot_position_* : Parking slot positions
+        # - *_roi_*: Image region of interest positions
+        # - number_of_slot: Number of parking slot that can be defined
+        # - action_queue: List of parking lot defining actions that has been appended through Undo action
         global ref_position_x, ref_position_y
         global slot_position_x, slot_position_y
         global start_roi_x, start_roi_y, end_roi_x, end_roi_y
         global number_of_slot
         global action_queue
-
         # Reset reference position, but do not delete their members
         for index in range(1, 5):
             ref_position_x[index] = 0
@@ -949,17 +998,17 @@ class reset_prompt(QDialog):
         start_roi_x = start_roi_y = end_roi_x = end_roi_y = 0
         # Reset action queue as well
         action_queue.clear()
-
         # Remove all entries that exist on the list
         current_list_row = window_define_parking_lot.listWidget.currentRow()
         while current_list_row >= 0:
             window_define_parking_lot.listWidget.takeItem(current_list_row)
             current_list_row -= 1
-
+        # Close the prompt as the function completes
         self.close()
-
+        # Block the next step as the landmarks now are not defined
         window_define_parking_lot.next_B.setEnabled(False)
 
+    # If no, close the prompt without execute the delete function
     def close_reset_prompt(self):
         self.reject()
 
@@ -1002,10 +1051,10 @@ class image_painter(QLabel):
             painter.setPen(QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.SolidLine))
             painter.drawRect(rectangle)
 
-        start_point_x = int(self.origin_x * 1920 / 960)
-        start_point_y = int(self.origin_y * 1080 / 540)
-        end_point_x = int(self.width * 1920 / 960)
-        end_point_y = int(self.height * 1080 / 540)
+        start_point_x   = round(self.origin_x   * 1920 / 960)
+        start_point_y   = round(self.origin_y   * 1080 / 540)
+        end_point_x     = round(self.width      * 1920 / 960)
+        end_point_y     = round(self.height     * 1080 / 540)
 
 
 class input_dialog_prompt(QDialog):
@@ -1131,6 +1180,7 @@ class show_result(QMainWindow):
 
         self.calib_image_label.setText("CALIBRATED IMAGE")
 
+        # Deprecated calibrated image selection
         # number_of_calibrated_file, filename = self.get_calibrated_images()
         #
         # last_calib_image = "{}\\{}\\calib\\{}".format(data_process_dir,
@@ -1301,7 +1351,9 @@ class show_result(QMainWindow):
     def auto_run(self):
         global image_index, max_image_index
         global calibrate_online_camera
+        global start_roi_x, start_roi_y, end_roi_x, end_roi_y
 
+        print("Region of interest: ({}, {}), ({}, {})".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y))
         self.image_calibration()
 
         # print(image_index, max_image_index)
@@ -1392,10 +1444,10 @@ window.addWidget(window_define_new)
 window.addWidget(window_run_auto)
 window.addWidget(window_adjust)
 window.addWidget(window_image_browser)
-window.addWidget(window_define_parking_lot)
 window.addWidget(window_show_result)
 
 window.setWindowTitle("Image Calibration")
+window.addWidget(window_define_parking_lot)
 window.setWindowIcon(QtGui.QIcon("{}\\icons\\main_program_icon.png".format(gui_dir)))
 window.setCurrentWidget(window_starting)
 
