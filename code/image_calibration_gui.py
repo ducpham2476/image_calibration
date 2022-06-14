@@ -1207,7 +1207,7 @@ class show_result(QMainWindow):
                 # print("Program finished!")
                 return
             else:
-                current_status, current_x, current_y = landmark_action.find_landmark(image_data)
+                current_status, current_x, current_y = landmark_action.find_landmark(image_data, ref_position_x, ref_position_y)
 
                 trigger_flag, current_calibrated_image = \
                     image_calibration.image_calibration(parent_path=parent,
@@ -1244,7 +1244,7 @@ class show_result(QMainWindow):
                 if image_data is None:
                     return
                 else:
-                    current_status, current_x, current_y = landmark_action.find_landmark(image_data)
+                    current_status, current_x, current_y = landmark_action.find_landmark(image_data, ref_position_x, ref_position_y)
                     trigger_flag, current_calibrated_image = \
                         image_calibration.image_calibration(parent_path=parent,
                                                             image_data=image_data,

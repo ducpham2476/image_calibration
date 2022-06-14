@@ -38,3 +38,118 @@ filename: original_test
 Working case: 0
 original_test.jpg recovered
 
+2022-06-14 15:46:00.813276
+filename: 00100
+Working case: -1
+00100.jpg not recovered, please check the camera/input
+
+2022-06-14 15:46:06.228641
+filename: 0101
+Working case: -1
+0101.jpg not recovered, please check the camera/input
+
+2022-06-14 15:46:11.644213
+filename: 0102
+Working case: -1
+0102.jpg not recovered, please check the camera/input
+
+2022-06-14 15:46:17.043688
+filename: 0103
+Working case: -1
+0103.jpg not recovered, please check the camera/input
+
+2022-06-14 15:46:22.444150
+filename: 0104
+Working case: -1
+0104.jpg not recovered, please check the camera/input
+
+2022-06-14 15:46:27.839313
+filename: 0105
+Working case: -1
+0105.jpg not recovered, please check the camera/input
+
+2022-06-14 15:47:12.591630
+filename: 00100
+Working case: -1
+00100.jpg not recovered, please check the camera/input
+
+2022-06-14 15:47:17.981635
+filename: 0101
+Working case: -1
+0101.jpg not recovered, please check the camera/input
+
+2022-06-14 15:47:23.396549
+filename: 0102
+Working case: -1
+0102.jpg not recovered, please check the camera/input
+
+2022-06-14 16:01:17.392445
+filename: 00100
+Working case: 0
+00100.jpg recovered
+
+2022-06-14 16:01:23.137705
+filename: 0101
+Working case: 0
+0101.jpg recovered
+
+2022-06-14 16:01:28.833077
+filename: 0102
+Working case: 0
+0102.jpg recovered
+
+2022-06-14 16:01:34.542261
+filename: 0103
+Working case: 0
+0103.jpg recovered
+
+2022-06-14 16:06:41.924760
+filename: 00100
+Working case: 0
+00100.jpg recovered
+
+2022-06-14 16:06:47.648281
+filename: 0101
+Working case: 0
+0101.jpg recovered
+
+2022-06-14 16:16:41.812925
+filename: 00100
+Working case: 0
+00100.jpg recovered
+
+2022-06-14 16:16:47.506180
+filename: 0101
+Working case: 0
+0101.jpg recovered
+
+2022-06-14 16:17:32.739792
+filename: 00100
+Working case: 0
+00100.jpg recovered
+
+2022-06-14 16:17:38.410591
+filename: 0101
+Working case: 0
+0101.jpg recovered
+
+2022-06-14 16:17:44.124329
+filename: 0102
+Working case: 0
+0102.jpg recovered
+
+2022-06-14 16:17:49.817738
+filename: 0103
+Working case: 0
+0103.jpg recovered
+
+2022-06-14 16:17:55.481551
+filename: 0104
+Working case: 0
+0104.jpg recovered
+
+2022-06-14 16:18:01.167238
+filename: 0105
+Working case: 0
+0105.jpg recovered
+

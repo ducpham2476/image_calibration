@@ -9,10 +9,127 @@ im_lower = np.array([20, 110, 110], dtype='uint8')
 im_upper = np.array([35, 255, 255], dtype='uint8')
 kernel = np.ones((3, 3), np.uint8)
 
+from tracking import tracking_init as track
+from tracking import toExl
+
+# Initiate threshold values, for image processing (contour recognition based on colors)
+im_lower = np.array([20, 110, 110], dtype='uint8')
+im_upper = np.array([35, 255, 255], dtype='uint8')
+kernel = np.ones((3, 3), np.uint8)
+
+check = 1
+
+bboxes = []
+	
+wb, sheet = toExl.newWB()
+
+def find_landmark(image_data, x_offset, y_offset):
+	global check
+	global multiTrack
+	global bboxes
+	if(check == 1):
+		# check = False
+		# bboxes = [(x_offset[1] - 50, y_offset[1], 106, 104), (1262, 520, 58, 68), (280, 784, 118, 108), (1290, 836, 122, 108)]
+		bboxes = []
+		for i in range(1, 5):
+			bboxes.append((x_offset[i] - 50, y_offset[i] - 50, 100, 100))
+		# bboxes = [(502, 514, 106, 104), (1262, 520, 58, 68), (280, 784, 118, 108), (1290, 836, 122, 108)]
+		multiTrack = track.multi_create(bboxes, image_data)
+		check += 1
+	# print(bboxes)
+	# exit()
+	# Initiate values
+	# Debug:
+	# print(address)
+	current_x = []
+	current_y = []
+	current_status = []
+
+	for k in range(0, 5):
+		current_x.append(0)
+		current_y.append(0)
+		if(not k):
+			current_status.append(0)
+		else:
+			current_status.append(1)
+	
+	centroid, lost_yellow, multiTrack = track.track(image_data, multiTrack, bboxes)
+
+	for i, x in enumerate(centroid):
+		current_x[i + 1] = x[0]
+		current_y[i + 1] = x[1]
+		if(x[0] == 0):
+			current_status[i + 1] = 0
+	
+	# Input image, create binary mask for contour recognition
+	# image_copy = image_data.copy()
+	# image_hsv = cv2.cvtColor(image_copy, cv2.COLOR_BGR2HSV)
+	# image_mask = cv2.inRange(image_hsv, im_lower, im_upper)
+	# image_mask = cv2.morphologyEx(image_mask, cv2.MORPH_OPEN, kernel)
+
+	# Debug:
+	# image_mask_show = image_mask
+	# Check image mask
+	# cv2.imshow("Image mask", image_mask_show)
+	# cv2.waitKey()
+
+	# Finding contours available on image
+	# cur_cnt, _ = cv2.findContours(image_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+	# Debug
+	# print(cur_cnt)
+
+	# Mapping contours found with desired landmarks, comparing parameters
+	# for c in cur_cnt:
+	# 	# Define contour bounding box
+	# 	x, y, w, h = cv2.boundingRect(c)
+	# 	# Defined range for landmark 1
+	# 	if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (15 < w < 70) and (7 < h < 60):
+	# 		current_x[1] = x + (w // 2)
+	# 		current_y[1] = y + (h // 2)
+	# 		current_status[1] = current_status[1] + 1
+	# 	# Defined range for landmarks 2
+	# 	elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (15 < w < 70) and (7 < h < 60):
+	# 		current_x[2] = x + (w // 2)
+	# 		current_y[2] = y + (h // 2)
+	# 		current_status[2] = current_status[2] + 1
+	# 	# Defined range for landmarks 3
+	# 	elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (20 < w < 80) and (10 < h < 60):
+	# 		current_x[3] = x + (w // 2)
+	# 		current_y[3] = y + (h // 2)
+	# 		current_status[3] = current_status[3] + 1
+	# 	# Defined range for landmarks 4
+	# 	elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (20 < w < 90) and (10 < h < 90):
+	# 		current_x[4] = x + (w // 2)
+	# 		current_y[4] = y + (h // 2)
+	# 		current_status[4] = current_status[4] + 1
+	# # Debug:
+	# # print(current_status[1], current_status[2], current_status[3], current_status[4])
+	# # If the number of contour found in one position is larger than 1, then the location is not determined!
+	# if current_status[1] != 1:
+	# 	current_x[1] = 0
+	# 	current_y[1] = 0
+	# if current_status[2] != 1:
+	# 	current_x[2] = 0
+	# 	current_y[2] = 0
+	# if current_status[3] != 1:
+	# 	current_x[3] = 0
+	# 	current_y[3] = 0
+	# if current_status[4] != 1:
+	# 	current_x[4] = 0
+	# 	current_y[4] = 0
+
+	# print("cur_stat: ", current_status)
+	global sheet
+	sheet = toExl.process(sheet, centroid, lost_yellow)
+	# if(check == 40):
+	# 	wb.save('D:\Python\LAB\Tracking\Test1.xlsx')
+	
+	return current_status, current_x, current_y
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Define landmark recognition function
-def find_landmark(image_data):
+def find_landmark2(image_data):
 	# Initiate values
 	# Debug:
 	# print(address)

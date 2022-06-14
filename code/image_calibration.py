@@ -410,7 +410,7 @@ def image_calibration(
 		# Cut out the region of interest, update landmark values
 		rot_image_cutout = rot_image[960:960 + 1080, 540:540 + 1920]
 		# Find all landmarks again, then perform image translation if necessary
-		status, current_x, current_y = landmark_recognition.find_landmark(rot_image_cutout)
+		status, current_x, current_y = landmark_recognition.find_landmark(rot_image_cutout,  ref_x, ref_y)
 		run_fl, run_md, cur_togg = case_switch_mode()
 		ref_mid_x, ref_mid_y, cur_mid_x, cur_mid_y = midpoint_calculate(run_fl, run_md, cur_togg)
 		r_case = run_case(run_fl, run_md, cur_togg)
