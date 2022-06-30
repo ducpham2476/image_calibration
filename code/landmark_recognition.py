@@ -225,7 +225,7 @@ def get_coordinate_std_file(input_path, input_name):
 		y_coord.append(0)
 
 	# Determine log file path
-	file_path = "{}\\data_process\\{}\\log_files\\{}".format(input_path, input_name, file_name)
+	file_path = "{}/data_process/{}/log_files/{}".format(input_path, input_name, file_name)
 	file = open(file_path, 'r+')
 
 	# Get separate lines from log file
@@ -308,7 +308,7 @@ def landmark_definition(image_data):
 
 # Test code
 # image = cv2.imread(
-# 	"D:\\PL_GUI\\data_process\\C9\\org\\org_C9_2022-06-02-15-53-08.jpg")
+# 	"D:/PL_GUI/data_process/C9/org/org_C9_2022-06-02-15-53-08.jpg")
 # status, pos_x, pos_y = find_landmark(image)
 # print(status)
 # print(pos_x)

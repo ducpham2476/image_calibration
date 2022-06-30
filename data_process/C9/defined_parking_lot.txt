@@ -1,1 +1,1 @@
-Reference Image: D:\Python\LAB\online_image_calibration\image_calibration\data_process\C9\std\std_C9_2022-06-14-16-17-09.jpg
+Reference Image: /home/thuan/image_calibration/data_process/C9/std/std_C9_2022-06-22-18-13-25.jpg

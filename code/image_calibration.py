@@ -337,7 +337,7 @@ def image_calibration(
 			# Rotate the image
 			shift_copy = image
 			# Debug:
-			# cv2.imwrite(os.path.join("D:\\21_05_08_result\\debug", "debug.jpg"), shift_copy)
+			# cv2.imwrite(os.path.join("D:/21_05_08_result/debug", "debug.jpg"), shift_copy)
 			rotate_mat = cv2.getRotationMatrix2D((3000 // 2, 3000 // 2), angle_final, 1.0)
 			# Debug: Print debug value
 			# cv2.imshow("Image", shift_copy)
@@ -367,13 +367,13 @@ def image_calibration(
 
 		# Write down the desired image
 		# Avoid using static addresses, try using environment variable instead!
-		result_path = path + "\\data_process\\{}\\calib".format(parklot_name)              # Image save path
+		result_path = path + "/data_process/{}/calib".format(parklot_name)              # Image save path
 		name = os.path.splitext(filename)[0]                            # Separate filename, remove the extension
 		write_image_path = os.path.join(result_path,
 										'recov_{}_({}_{}_{}).jpg'.format(name, translation_x, translation_y, angle))
 		cv2.imwrite(write_image_path, image_out)
 		# Log debug information
-		f_debug = open(path + "\\data_process\\{}\\debug.txt".format(parklot_name), 'a+')
+		f_debug = open(path + "/data_process/{}/debug.txt".format(parklot_name), 'a+')
 		f_debug.write("{}\n".format(datetime.datetime.now()))
 		f_debug.write("filename: {}\n".format(name))
 		f_debug.write("Working case: {}\n".format(case))

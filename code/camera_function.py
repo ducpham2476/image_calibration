@@ -34,7 +34,7 @@ def image_capture(rtsp):
 
 def image_save_path(path, input_name, image_type):
 	# Define image save path:
-	img_save_path = "{}\\data_process\\{}\\{}".format(path, input_name, image_type)
+	img_save_path = "{}/data_process/{}/{}".format(path, input_name, image_type)
 	# Debug:
 	# print(img_save_path)
 

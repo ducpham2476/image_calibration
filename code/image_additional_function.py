@@ -77,8 +77,8 @@ def image_difference(reference_image, calibrated_image, write_path, start_roi_x,
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Function test
-# original_image = "D:\\original_test.jpg"
-# standard_image = "D:\\standard_test.jpg"
+# original_image = "D:/original_test.jpg"
+# standard_image = "D:/standard_test.jpg"
 #
-# matching_rate = image_difference(standard_image, original_image, "D:\\result")
+# matching_rate = image_difference(standard_image, original_image, "D:/result")
 # ----------------------------------------------------------------------------------------------------------------------
