@@ -1277,7 +1277,7 @@ class show_result(QMainWindow):
         file_name_original = [filename for filename in file_list_original if os.path.isfile(
             os.path.join(original_image_path, filename))]
         number_of_file = len(file_name_original)
-
+        file_name_original.sort()
         return number_of_file, file_name_original
 
     def image_selection(self):
