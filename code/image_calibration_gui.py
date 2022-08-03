@@ -18,8 +18,10 @@ import sys
 import os
 from collections import deque
 import threading
+import math
+import asyncio
 # import time
-# import logging
+import logging
 
 # OpenCV package
 import cv2
@@ -27,6 +29,8 @@ import cv2
 # Import additional functions
 # Import directory & file related functions
 import folder_file_manipulation as folder_file_action
+# Import configuration manipulation
+import configuration as config
 # Import landmarks processing functions
 import landmark_recognition as landmark_action
 # Import main image calibration function
@@ -43,32 +47,39 @@ import camera_function
 
 # Define top working directory
 parent = os.path.dirname(os.getcwd())  # Top working directory
-gui_dir = parent + "\\gui_files"  # Graphical User Interface files
-gui_code = parent + "\\code"  # GUI functions' definitions
-data_process_dir = parent + "\\data_process"
+gui_dir = parent + "/gui_files"  # Graphical User Interface files
+gui_code = parent + "/code"  # GUI functions' definitions
+data_process_dir = parent + "/data_process"
+debug_dir = parent + "/debug"
 
-# Camera parameters:
-rtsp_user = "admin"
-rtsp_password = "bk123456"
-ip_address = "192.168.30.115"
-access_port = "554"
-device_number = "01"
-camera_rtsp = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + ip_address \
-              + ":" + access_port + "/Streaming/channels/" + device_number
+# Configure debug file + function
+# debug_log_file = debug_dir + "/debug.log"
+# logger = logging.getLogger('Image Calibration')
+# logger.setLevel(logging.DEBUG)
+#
+# file_handler = logging.FileHandler(debug_log_file)
+# file_handler.setLevel(logging.DEBUG)
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# file_handler.setFormatter(formatter)
 
 # Define the standard image is inputted through an online camera
 std_camera_flag = False
 # Define that the input data is from the online camera
 calibrate_online_camera = False
+# Landmark show control flag
+landmark_centroid_flag = False
 
 # Change current working directory to top directory
 os.chdir(parent)
 # Check and create storing data directory
 folder_file_action.create_data_process(parent)
 # Check and create text file contains list of parking lots
-folder_file_action.create_parking_lot_manage("{}\\data_process".format(parent))
+folder_file_action.create_parking_lot_manage("{}/data_process".format(parent))
 # Go to data top working directory
-os.chdir("{}\\data_process".format(parent))
+os.chdir("{}/data_process".format(parent))
+# Get configurations for program
+configuration_data = config.get_configurations(parent)
+# print(configuration_data)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -125,23 +136,29 @@ for i in range(0, number_of_landmarks + 1):
 # ----------------------------------------------------------------------------------------------------------------------
 # Threads management
 # threads = []
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Define .ui classes
+
 # 1 > Welcome window:
 class window_welcome(QMainWindow):
     # Initiate Welcome window on application execution
     def __init__(self):
         # Initiate object
         super(window_welcome, self).__init__()
-        uic.loadUi(gui_dir + '\\open-window.ui', self)
+        uic.loadUi(gui_dir + '/open-window.ui', self)
         # Connect button to their functions
         self.def_new_pl_B.clicked.connect(self.to_define_new)
         self.proc_auto_B.clicked.connect(self.to_run_auto)
         self.adj_pl_B.clicked.connect(self.to_adjust)
         self.exit_B.clicked.connect(self.exit_program)
+        # Connect menubar functions
+        self.action_exit.triggered.connect(self.exit_program)
+        self.action_setting.triggered.connect(self.setting_program)
 
     # Change to 2.1 > Define New Parking Lot window
     @staticmethod
@@ -163,19 +180,25 @@ class window_welcome(QMainWindow):
     def exit_program():
         exit_dialog()
 
+    # Execute Settings dialog
+    @staticmethod
+    def setting_program():
+        setting_dialog()
+
 
 # 1 > Subclass: Exit Dialog
 class exit_dialog(QDialog):
     # Initiate exit dialog on creation
     def __init__(self):
         super(exit_dialog, self).__init__()
-        uic.loadUi('{}\\exit-prompt.ui'.format(gui_dir), self)
+        uic.loadUi('{}/exit-prompt.ui'.format(gui_dir), self)
         # Set dialog title & icon
         self.setWindowTitle("Exit?")
-        self.setWindowIcon(QtGui.QIcon("{}\\icons\\exit_window_icon.png".format(gui_dir)))
+        self.setWindowIcon(QtGui.QIcon("{}/icons/exit_window_icon.png".format(gui_dir)))
         # Connect buttons to their respective functions
         self.yes_B.clicked.connect(self.closeEvent)
         self.no_B.clicked.connect(self.close_exit_prompt)
+        # Connect menubar functions
         # Execute exit dialog
         self.exec_()
 
@@ -183,7 +206,7 @@ class exit_dialog(QDialog):
     def closeEvent(self, event):
         # If a parking lot is selected and temporary folder contains files: Delete temp files
         if select_parking_lot != "":
-            temporary_path = "{}\\{}\\temp".format(data_process_dir,
+            temporary_path = "{}/{}/temp".format(data_process_dir,
                                                    select_parking_lot)
             for filename in os.listdir(temporary_path):
                 os.remove(os.path.join(temporary_path, filename))
@@ -201,12 +224,133 @@ class exit_dialog(QDialog):
         self.reject()
 
 
+# 1 > Subclass: Settings
+class setting_dialog(QDialog):
+    # Initiate dialog on creation
+    def __init__(self):
+        super(setting_dialog, self).__init__()
+        uic.loadUi('{}/setting-menu.ui'.format(gui_dir), self)
+        self.setWindowTitle("Settings")
+        self.setWindowIcon(QtGui.QIcon("{}/icons/settings_icon.png".format(gui_dir)))
+        # Update values to the setting menu
+        self.param_init()
+        # Connect buttons to functions
+        self.save_B.clicked.connect(self.save_settings)
+        self.back_B.clicked.connect(self.close_setting_menu)
+        self.browse_B.clicked.connect(self.browse_debug_location)
+        self.test_cam_B.clicked.connect(self.test_camera)
+        self.exec()
+
+    # Get parameters from input configuration file
+    def param_init(self):
+        global configuration_data
+        # Warning: All data types must be converted into string before update to the QLineEdit widgets
+        self.usr_name_input.setText(str(configuration_data[1]['username']))
+        self.pass_input.setText(configuration_data[2]['password'])
+        self.ip_input.setText(configuration_data[3]['ip'])
+        self.port_input.setText(str(configuration_data[4]['port']))
+        self.dev_np_input.setText(configuration_data[5]['device number'])
+        # Modify the delay time configuration
+        self.calib_time_spinbox.setValue(configuration_data[6]['delay time'])
+        # Modify the checkbox options
+        if configuration_data[7]['test calibration']:
+            self.checkBox_2.setChecked(True)
+        if configuration_data[8]['write debug info']:
+            self.checkBox.setChecked(True)
+        # Get calibration debug file location
+        self.debug_file_location.setText(configuration_data[9]['debug file location'])
+
+        test_calibration_control_on()
+
+    # Save configurations to user config
+    def save_settings(self):
+        # Get configuration data
+        global parent
+        global configuration_data
+        global camera_rtsp
+        # Set configurations
+        configuration_data[1]['username'] = self.usr_name_input.text()
+        configuration_data[2]['password'] = self.pass_input.text()
+        configuration_data[3]['ip'] = self.ip_input.text()
+        configuration_data[4]['port'] = int(self.port_input.text())
+        configuration_data[5]['device number'] = self.dev_np_input.text()
+        configuration_data[6]['delay time'] = int(self.calib_time_spinbox.value())
+        configuration_data[7]['test calibration'] = bool(self.checkBox_2.isChecked())
+        configuration_data[8]['write debug info'] = bool(self.checkBox.isChecked())
+        configuration_data[9]['debug file location'] = self.debug_file_location.text()
+        # print(configuration_data)
+        # Write configurations to user config file
+        config.write_user_configurations(parent, configuration_data)
+        camera_rtsp = update_camera_rtsp(configuration_data)
+
+    # Browse for debug file saving location
+    def browse_debug_location(self):
+        folder_name = QFileDialog.getExistingDirectory(self, 'Select directory')
+        # print(folder_name)
+        self.debug_file_location.setText(folder_name)
+
+    # @staticmethod
+    # Test connection to camera with current setting parameters
+    async def test_camera_capture(self):
+        global configuration_data
+        global camera_rtsp
+        global parent
+
+        try:
+            result = await asyncio.wait_for(camera_function.image_capture(camera_rtsp), timeout=5.0)
+            # print(result[0])
+            self.test_cam_result_input.setText("Camera captured successfully!")
+            cv2.imwrite("{}/data_process/debug/test_capture.jpg".format(parent), result[1])
+            test_pixmap = QPixmap("{}/data_process/debug/test_capture.jpg".format(parent))
+            # test_pixmap = QPixmap(result[1])
+            self.cam_test_image_disp.setPixmap(test_pixmap)
+            self.cam_test_image_disp.setScaledContents(True)
+
+        except asyncio.TimeoutError:
+            print("Timeout!!")
+            self.test_cam_result_input.setText("Camera capture failed! Please check the parameters and connection to the camera!")
+
+            return
+
+        # cv2.imshow("Capture image", result[1])
+        # cv2.waitKey()
+        # test_pixmap = QPixmap(result[1])
+        # self.cam_test_image_disp.setPixmap(test_pixmap)
+        # self.cam_test_image_disp.setScaledContents(True)
+
+    def test_camera(self):
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(self.test_camera_capture())
+        # loop.close()
+
+        pass
+
+    # Return to main menu
+    def close_setting_menu(self):
+        test_calibration_control_on()
+        self.close()
+
+
+# Test calibration control functions: If test calibration is on, then the program do not receive new data
+def test_calibration_control_on():
+    if configuration_data[7]['test calibration']:
+        window_starting.def_new_pl_B.setEnabled(False)
+        window_starting.def_new_pl_B.setStyleSheet("background-color: rgb(150, 150, 150)")
+    elif not configuration_data[7]['test calibration']:
+        window_starting.def_new_pl_B.setEnabled(True)
+        window_starting.def_new_pl_B.setStyleSheet(
+            "QPushButton{background-color: rgb(70, 190, 190);color: rgb(255, 255, 255);}"
+            "QPushButton:hover{background-color:rgb(50, 150, 150);}"
+            "QPushButton:pressed{background-color: rgb(40, 120, 130);}"
+        )
+
+
 # 2.1 > Define new parking lot menu:
 class define_new_parking_lot(QMainWindow):
     # Initiate Welcome Window on application execution
     def __init__(self):
         super(define_new_parking_lot, self).__init__()
-        uic.loadUi(gui_dir + '\\define-new-parking-lot.ui', self)
+        uic.loadUi(gui_dir + '/define-new-parking-lot.ui', self)
         # Connect buttons to their respective functions
         self.next_B.clicked.connect(self.to_select_ref)
         self.back_B.clicked.connect(self.to_welcome)
@@ -270,7 +414,7 @@ class define_new_parking_lot(QMainWindow):
     # Add new parking lot to available parking lot list
     def add_new_parking_lot(self, write_name):
         # Write the parking lot name to a temporary file
-        temp_parking_lot = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), 'w+')
+        temp_parking_lot = open("{}/add_temporary_parking_lot.txt".format(data_process_dir), 'w+')
         temp_parking_lot.write(write_name)
         temp_parking_lot.close()
         # Clear previous text edit box value
@@ -287,7 +431,7 @@ class process_parking_lot_auto(QMainWindow):
     # Initiate Process Parking Lot Auto Window on application execution
     def __init__(self):
         super(process_parking_lot_auto, self).__init__()
-        uic.loadUi(gui_dir + '\\process-parking-lot-auto.ui', self)
+        uic.loadUi(gui_dir + '/process-parking-lot-auto.ui', self)
         # Load available parking lot into selection list
         for name in available_parking_lots:
             self.avail_parklot.addItem(name)
@@ -321,10 +465,10 @@ class process_parking_lot_auto(QMainWindow):
         # Else check the selected parking lot's data
         else:
             # Access to the respective data storage of the parking lot
-            data_path = "{}\\data_process\\{}".format(parent, parking_lot)
+            data_path = "{}/data_process/{}".format(parent, parking_lot)
             # Check the availability of reference image and landmarks information
-            if os.stat("{}\\defined_parking_lot.txt".format(data_path)).st_size != 0 and \
-                    os.stat("{}\\landmarks.txt".format(data_path)).st_size != 0:
+            if os.stat("{}/defined_parking_lot.txt".format(data_path)).st_size != 0 and \
+                    os.stat("{}/landmarks.txt".format(data_path)).st_size != 0:
                 # If both info available, allow access to the next step
                 self.noti_box.setText("Parking lot ready for calibration!")
                 self.run_auto_B.setEnabled(True)
@@ -338,10 +482,10 @@ class process_parking_lot_auto(QMainWindow):
     # Add new parking lot if there is(are) ones added through Define New Parking Lot
     def add_parking_lot_list(self):
         # Read new parking lot name from a temporary file
-        temp_parking_lots = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), "r+")
+        temp_parking_lots = open("{}/add_temporary_parking_lot.txt".format(data_process_dir), "r+")
         new_parking_lots = temp_parking_lots.read()
         # If there are data within the temporary file, append them to the available parking lot list
-        if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
+        if os.stat("{}/add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
             self.avail_parklot.addItem(new_parking_lots)
             # temp_parking_lots.truncate(0)
             temp_parking_lots.close()
@@ -365,10 +509,10 @@ class process_parking_lot_auto(QMainWindow):
         global reference_filename
 
         # Read data from Region of Interest file
-        region_of_interest_path = "{}\\data_process\\{}\\roi.txt".format(parent, select_parking_lot)
+        region_of_interest_path = "{}/data_process/{}/roi.txt".format(parent, select_parking_lot)
         # Check if the region of interest exists and has data
-        if os.path.isfile("{}\\data_process\\{}\\roi.txt".format(parent, select_parking_lot)) and \
-                os.stat("{}\\data_process\\{}\\roi.txt".format(parent, select_parking_lot)).st_size != 0:
+        if os.path.isfile("{}/data_process/{}/roi.txt".format(parent, select_parking_lot)) and \
+                os.stat("{}/data_process/{}/roi.txt".format(parent, select_parking_lot)).st_size != 0:
             f_roi = open(region_of_interest_path, 'r+')
             value_string = f_roi.readlines()[0]
             values = value_string.split(" ")
@@ -385,7 +529,7 @@ class process_parking_lot_auto(QMainWindow):
             # If the data is valid, run image calibration
             if run_flag:
                 # Get reference image information
-                reference_image_container = "{}\\{}\\defined_parking_lot.txt".format(data_process_dir,
+                reference_image_container = "{}/{}/defined_parking_lot.txt".format(data_process_dir,
                                                                                      select_parking_lot)
                 f_reference_file = open(reference_image_container, 'r+')
                 lines = f_reference_file.readlines()
@@ -418,7 +562,7 @@ class adjust_parking_lot(QMainWindow):
     # Initiate Adjust Parking Lot window on application execution
     def __init__(self):
         super(adjust_parking_lot, self).__init__()
-        uic.loadUi(gui_dir + '\\adjust-parking-lot.ui', self)
+        uic.loadUi(gui_dir + '/adjust-parking-lot.ui', self)
         # Append all available parking lot to list widget
         for name in available_parking_lots:
             self.avail_pl_list.addItem(name)
@@ -467,10 +611,10 @@ class adjust_parking_lot(QMainWindow):
     # Add new parking lot to the list widget
     def refresh_parking_lot_list(self):
         # Get temporary new parking lots
-        temp_parking_lots = open("{}\\add_temporary_parking_lot.txt".format(data_process_dir), "r+")
+        temp_parking_lots = open("{}/add_temporary_parking_lot.txt".format(data_process_dir), "r+")
         new_parking_lots = temp_parking_lots.read()
         # If the temporary parking lot file is not empty, add all entity from the file
-        if os.stat("{}\\add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
+        if os.stat("{}/add_temporary_parking_lot.txt".format(data_process_dir)).st_size != 0:
             self.avail_pl_list.addItem(new_parking_lots)
             # Truncate the file (clear contents after adding)
             # This line should be deprecated!
@@ -484,10 +628,10 @@ class delete_prompt(QDialog):
 
     def __init__(self):
         super(delete_prompt, self).__init__()
-        uic.loadUi('{}\\delete-prompt.ui'.format(gui_dir), self)
+        uic.loadUi('{}/delete-prompt.ui'.format(gui_dir), self)
 
         self.setWindowTitle("Delete {}?".format(select_parking_lot))
-        self.setWindowIcon(QtGui.QIcon("{}\\icons\\warning_icon.png".format(gui_dir)))
+        self.setWindowIcon(QtGui.QIcon("{}/icons/warning_icon.png".format(gui_dir)))
         self.yes_B.clicked.connect(self.delete_parking_lot)
         self.no_B.clicked.connect(self.close_delete_prompt)
 
@@ -502,7 +646,7 @@ class delete_prompt(QDialog):
         # If the parking lot name is not blank/empty string
         if delete_lot_name != "":
             # Remove all data belongs to the parking lot (directory tree & files)
-            folder_file_action.remove_all_contents("{}\\data_process\\{}".format(parent, delete_lot_name))
+            folder_file_action.remove_all_contents("{}/data_process/{}".format(parent, delete_lot_name))
             # Remove the parking lot from saved parking lot list
             folder_file_action.file_clear_specific_content(parent, "available_parking_lot.txt", delete_lot_name)
             # Remove from the selection list
@@ -527,12 +671,10 @@ class delete_prompt(QDialog):
 
 # 3 > Select reference image window
 class image_browser(QMainWindow):
-    global reference_filename
-
     # Initiate Image Browser window on application execution
     def __init__(self):
         super(image_browser, self).__init__()  # Call the inherited classes __init__ method
-        uic.loadUi(gui_dir + '\\select-reference-image.ui', self)  # Load the .ui file
+        uic.loadUi(gui_dir + '/select-reference-image.ui', self)  # Load the .ui file
         # Connect buttons to their functions
         self.next_B.clicked.connect(self.define_park_lot)
         self.browse_B.clicked.connect(self.browse_image)
@@ -579,14 +721,14 @@ class image_browser(QMainWindow):
             time_stamp = folder_file_action.get_time_stamp()
             # Read and write the image at the selection time
             reference_image = cv2.imread(reference_filename)
-            write_path = "{}\\data_process\\{}\\std\\std_{}_{}.jpg".format(parent,
+            write_path = "{}/data_process/{}/std/std_{}_{}.jpg".format(parent,
                                                                            select_parking_lot,
                                                                            select_parking_lot,
                                                                            time_stamp
                                                                            )
             cv2.imwrite(write_path, reference_image)
             # Write the reference image path to a storage file
-            parking_lot_defined = open("{}\\data_process\\{}\\defined_parking_lot.txt".format(parent,
+            parking_lot_defined = open("{}/data_process/{}/defined_parking_lot.txt".format(parent,
                                                                                               select_parking_lot
                                                                                               ), "w+")
             parking_lot_defined.write("Reference Image: {}\n".format(write_path))
@@ -629,16 +771,16 @@ class image_browser(QMainWindow):
         # Check camera flag
         global std_camera_flag
         # Get standard image write folder
-        current_write_folder = "{}\\data_process\\{}\\{}".format(parent, select_parking_lot, "std")
+        current_write_folder = "{}/data_process/{}/{}".format(parent, select_parking_lot, "std")
         # Capture from camera
         read_status, image_data = camera_function.image_capture(camera_rtsp)
-        # Write standard image
-        time_stamp = folder_file_action.get_time_stamp()
-        image_name = "{}_{}_{}.jpg".format("std", select_parking_lot, time_stamp)
-        reference_filename = os.path.join(current_write_folder, image_name)
-        cv2.imwrite(reference_filename, image_data)
         # Check image availability, then setup reference image
         if read_status and os.path.isfile(reference_filename):
+            # Write standard image
+            time_stamp = folder_file_action.get_time_stamp()
+            image_name = "{}_{}_{}.jpg".format("std", select_parking_lot, time_stamp)
+            reference_filename = os.path.join(current_write_folder, image_name)
+            cv2.imwrite(reference_filename, image_data)
             # If image is read in (and successfully saved), read in the image captured from camera
             # QPixmap requires passing in image path, not image data
             pixmap = QPixmap(reference_filename)
@@ -646,7 +788,7 @@ class image_browser(QMainWindow):
             self.image_disp.setScaledContents(True)
             self.image_name.setText("Capture from Camera")
             # Write standard image path to save file
-            parking_lot_defined = open("{}\\data_process\\{}\\defined_parking_lot.txt".format(parent,
+            parking_lot_defined = open("{}/data_process/{}/defined_parking_lot.txt".format(parent,
                                                                                               select_parking_lot
                                                                                               ), "w+")
             parking_lot_defined.write("Reference Image: {}\n".format(reference_filename))
@@ -666,17 +808,16 @@ class image_browser(QMainWindow):
 
 # 4 > Define Parking Lot window
 class define_parking_lot(QMainWindow):
-
     # Initiate Define Parking Lot window on application execution
     def __init__(self):
         super(define_parking_lot, self).__init__()
-        uic.loadUi(gui_dir + '\\define-parking-lot.ui', self)
+        uic.loadUi(gui_dir + '/define-parking-lot.ui', self)
         # Set image viewer box, overload with custom QLabel class
         self.image_editor = image_painter(self.image_disp)
         self.image_editor.setGeometry(QtCore.QRect(0, 0, 960, 540))
         # Connect buttons to their respective functions
-        self.back_B.clicked.connect(self.select_reference_image)
         # Connect navigation buttons
+        self.back_B.clicked.connect(self.select_reference_image)
         self.undo_B.clicked.connect(self.undo_action)
         self.redo_B.clicked.connect(self.redo_action)
         self.reset_B.clicked.connect(self.reset_action)
@@ -684,6 +825,8 @@ class define_parking_lot(QMainWindow):
         self.savelm_B.clicked.connect(self.get_landmark_index)
         self.saveplot_B.clicked.connect(self.get_parking_slot_index)
         self.save_roi_B.clicked.connect(self.get_region_of_interest)
+        # Connect test button(s)
+        self.test_lm_B.clicked.connect(self.test_landmark_definition)
         # Connect to the execute function, and disable it as a default
         self.next_B.clicked.connect(self.to_result)
         self.next_B.setEnabled(False)
@@ -808,9 +951,19 @@ class define_parking_lot(QMainWindow):
         self.listWidget.setCurrentItem(add_item)
 
         # Write ROI information to save file
-        f_roi = open("{}\\data_process\\{}\\roi.txt".format(parent, select_parking_lot), 'w+')
+        f_roi = open("{}/data_process/{}/roi.txt".format(parent, select_parking_lot), 'w+')
         f_roi.write("{} {} {} {}".format(start_roi_x, start_roi_y, end_roi_x, end_roi_y))
         f_roi.close()
+
+        return
+
+    # Test defining landmark step
+    # @staticmethod
+    def test_landmark_definition(self):
+        global landmark_centroid_flag
+
+        self.image_editor.test_landmark_definition()
+        self.image_editor.update()
 
         return
 
@@ -939,14 +1092,14 @@ class define_parking_lot(QMainWindow):
     def to_result():
         # If there are new data about the landmark positions, write to the save file
         if ref_position_x is not None:
-            write_landmarks = open("{}\\data_process\\{}\\landmarks.txt".format(parent, select_parking_lot), 'w+')
+            write_landmarks = open("{}/data_process/{}/landmarks.txt".format(parent, select_parking_lot), 'w+')
             for index in range(1, 5):
                 write_landmarks.write("{} {}\n".format(ref_position_x[index], ref_position_y[index]))
             write_landmarks.close()
 
         # If there are new data about the parking slot positions, write to the save file
         if slot_position_x is not None:
-            write_parking_slot = open("{}\\data_process\\{}\\parking_slots.txt".format(parent, select_parking_lot),
+            write_parking_slot = open("{}/data_process/{}/parking_slots.txt".format(parent, select_parking_lot),
                                       'w+')
             for index in range(1, int(number_of_slot + 1)):
                 write_parking_slot.write("{} {} {}\n".format(index, slot_position_x[index], slot_position_y[index]))
@@ -963,10 +1116,10 @@ class reset_prompt(QDialog):
     # Reset prompt initiation upon object creation
     def __init__(self):
         super(reset_prompt, self).__init__()
-        uic.loadUi('{}\\reset-prompt.ui'.format(gui_dir), self)
+        uic.loadUi('{}/reset-prompt.ui'.format(gui_dir), self)
         # Set prompt name & icon
         self.setWindowTitle("Reset all data?")
-        self.setWindowIcon(QtGui.QIcon("{}\\icons\\warning_icon.png".format(gui_dir)))
+        self.setWindowIcon(QtGui.QIcon("{}/icons/warning_icon.png".format(gui_dir)))
         # Connect buttons to their respective functions
         self.yes_B.clicked.connect(self.reset_all_data)
         self.no_B.clicked.connect(self.close_reset_prompt)
@@ -1038,32 +1191,48 @@ class image_painter(QLabel):
         global start_point_x, start_point_y, end_point_x, end_point_y
 
         super().paintEvent(event)
-        if (self.width - self.origin_x <= 5) and (self.height - self.origin_y <= 5):
-            rectangle = QtCore.QRect(0, 0, 0, 0)
-            painter = QtGui.QPainter(self)
-            painter.setPen(QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.SolidLine))
-            painter.drawRect(rectangle)
-        else:
+
+        painter = QtGui.QPainter(self)
+        painter.setPen(QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.SolidLine))
+
+        if (self.width - self.origin_x > 5) and (self.height - self.origin_y > 5):
             rectangle = QtCore.QRect(self.origin_x, self.origin_y,
                                      self.width - self.origin_x,
                                      self.height - self.origin_y)
-            painter = QtGui.QPainter(self)
-            painter.setPen(QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.SolidLine))
             painter.drawRect(rectangle)
 
-        start_point_x   = round(self.origin_x   * 1920 / 960)
-        start_point_y   = round(self.origin_y   * 1080 / 540)
-        end_point_x     = round(self.width      * 1920 / 960)
-        end_point_y     = round(self.height     * 1080 / 540)
+            start_point_x   = round(self.origin_x   * 1920 / 960)
+            start_point_y   = round(self.origin_y   * 1080 / 540)
+            end_point_x     = round(self.width      * 1920 / 960)
+            end_point_y     = round(self.height     * 1080 / 540)
+
+    def test_landmark_definition(self):
+        global ref_position_x, ref_position_y
+        # Check values
+        painter = QtGui.QPainter(self)
+        painter.setPen(QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.SolidLine))
+
+        for index in range(1, 5):
+            if (ref_position_x[index] != 0) and (ref_position_y[index] != 0):
+                draw_position_x = math.floor(ref_position_x[index] / 1920 * 1280)
+                draw_position_y = math.floor(ref_position_y[index] / 1080 * 720)
+                print(draw_position_x, draw_position_y)
+
+                painter.drawEllipse(draw_position_x, draw_position_y, 10, 10)
+
+                self.update()
+
+        # self.update()
+        # return
 
 
 class input_dialog_prompt(QDialog):
 
     def __init__(self, dialog_type):
         super(input_dialog_prompt, self).__init__()
-        uic.loadUi(gui_dir + '\\get-index-prompt.ui', self)
+        uic.loadUi(gui_dir + '/get-index-prompt.ui', self)
 
-        self.setWindowIcon(QtGui.QIcon("{}\\icons\\info_icon.png".format(gui_dir)))
+        self.setWindowIcon(QtGui.QIcon("{}/icons/info_icon.png".format(gui_dir)))
 
         if dialog_type == 'landmark':
             self.input_name_label.setText("Enter landmark index")
@@ -1100,7 +1269,7 @@ class show_result(QMainWindow):
         global image_index, max_image_index
 
         super(show_result, self).__init__()
-        uic.loadUi(gui_dir + "\\results-show.ui", self)
+        uic.loadUi(gui_dir + "/results-show.ui", self)
 
         self.back_to_def_B.clicked.connect(self.to_define_parking_lot)
 
@@ -1117,7 +1286,7 @@ class show_result(QMainWindow):
     def get_landmark_coordinates(select_lot):
         global ref_position_x, ref_position_y
 
-        landmark_file_destination = "{}\\{}\\landmarks.txt".format(data_process_dir, select_lot)
+        landmark_file_destination = "{}/{}/landmarks.txt".format(data_process_dir, select_lot)
         f_landmark = open(landmark_file_destination, 'r+')
 
         if os.stat(landmark_file_destination).st_size == 0:
@@ -1149,7 +1318,7 @@ class show_result(QMainWindow):
     # Get newly captured image
     def setup_captured_image(self, image_name):
 
-        image_path = "{}\\data_process\\{}\\{}\\{}".format(parent, select_parking_lot, "org", image_name)
+        image_path = "{}/data_process/{}/{}/{}".format(parent, select_parking_lot, "org", image_name)
         capture_image = QPixmap(image_path)
         self.original_image_disp.setPixmap(capture_image)
         self.original_image_disp.setScaledContents(True)
@@ -1160,9 +1329,9 @@ class show_result(QMainWindow):
         global data_process_dir, select_parking_lot
 
         if not calibrate_online_camera:
-            list_calibrated = os.listdir("{}\\{}\\calib".format(data_process_dir, select_parking_lot))
+            list_calibrated = os.listdir("{}/{}/calib".format(data_process_dir, select_parking_lot))
             filename_calibrated = [name for name in list_calibrated
-                                   if os.path.isfile(os.path.join("{}\\{}\\calib".format(data_process_dir,
+                                   if os.path.isfile(os.path.join("{}/{}/calib".format(data_process_dir,
                                                                                          select_parking_lot),
                                                                   name)
                                                      )
@@ -1183,7 +1352,7 @@ class show_result(QMainWindow):
         # Deprecated calibrated image selection
         # number_of_calibrated_file, filename = self.get_calibrated_images()
         #
-        # last_calib_image = "{}\\{}\\calib\\{}".format(data_process_dir,
+        # last_calib_image = "{}/{}/calib/{}".format(data_process_dir,
         #                                               select_parking_lot,
         #                                               filename[image_index])
 
@@ -1272,7 +1441,7 @@ class show_result(QMainWindow):
 
     @staticmethod
     def image_parse():
-        original_image_path = "{}\\data_process\\{}\\org".format(parent, select_parking_lot)
+        original_image_path = "{}/data_process/{}/org".format(parent, select_parking_lot)
         file_list_original = os.listdir(original_image_path)
         file_name_original = [filename for filename in file_list_original if os.path.isfile(
             os.path.join(original_image_path, filename))]
@@ -1283,7 +1452,7 @@ class show_result(QMainWindow):
     def image_selection(self):
         global image_index, max_image_index
 
-        original_image_path = "{}\\data_process\\{}\\org".format(parent, select_parking_lot)
+        original_image_path = "{}/data_process/{}/org".format(parent, select_parking_lot)
         number_of_file, file_name_list = self.image_parse()
         max_image_index = number_of_file - 1
         image_index = image_index + 1
@@ -1313,20 +1482,25 @@ class show_result(QMainWindow):
         self.com_ref_B.setEnabled(False)
         # number_of_calibrated_file, filename = self.get_calibrated_images()
         #
-        # calib_image = "{}\\{}\\calib\\{}".format(data_process_dir,
+        # calib_image = "{}/{}/calib/{}".format(data_process_dir,
         #                                          select_parking_lot,
         #                                          filename[image_index])
 
-        temporary_path = "{}\\{}\\temp".format(data_process_dir,
+        temporary_path = "{}/{}/temp".format(data_process_dir,
                                                select_parking_lot)
+        binary_image_path = "{}/{}/binary_difference".format(data_process_dir,
+                                                               select_parking_lot)
+        image_name = folder_file_action.get_image_name(current_calibrated_image)
 
         rate = image_action.image_difference(reference_filename,
                                              current_calibrated_image,
                                              temporary_path,
-                                             start_roi_x,
-                                             start_roi_y,
-                                             end_roi_x,
-                                             end_roi_y)
+                                             binary_write_path=binary_image_path,
+                                             image_name=image_name,
+                                             start_roi_x=start_roi_x,
+                                             start_roi_y=start_roi_y,
+                                             end_roi_x=end_roi_x,
+                                             end_roi_y=end_roi_y)
 
         self.calib_rate_label.setText("RATING: {}%".format(rate))
         self.com_ref_B.setEnabled(True)
@@ -1338,10 +1512,10 @@ class show_result(QMainWindow):
 
         self.calib_image_label.setText("DIFFERENCE")
 
-        temporary_path = "{}\\{}\\temp".format(data_process_dir,
+        temporary_path = "{}/{}/temp".format(data_process_dir,
                                                select_parking_lot)
 
-        difference_pixmap = QPixmap("{}\\temp_difference.jpg".format(temporary_path))
+        difference_pixmap = QPixmap("{}/temp_difference.jpg".format(temporary_path))
         self.calib_image_disp.setPixmap(difference_pixmap)
         self.calib_image_disp.setScaledContents(True)
 
@@ -1365,67 +1539,26 @@ class show_result(QMainWindow):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Define additional functions
+def update_camera_rtsp(data):
+    rtsp = "rtsp://" \
+           + data[1]['username'] \
+           + ":" \
+           + data[2]['password'] \
+           + "@" \
+           + data[3]['ip'] \
+           + ":" \
+           + str(data[4]['port'])\
+           + "/Streaming/channels/" \
+           + data[5]['device number']
+
+    return rtsp
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Additional functions
-def camera_parameters_modifier(new_username, new_password, new_ip, new_port, new_device_number):
-    global rtsp_user, rtsp_password
-    global ip_address, access_port, device_number
+# Camera parameters:
+camera_rtsp = update_camera_rtsp(configuration_data)
 
-    def username_modifier(new_value):
-        global rtsp_user
-        if new_value is not None and len(new_value) > 0:
-            rtsp_user = new_value
-            return True
-        else:
-            return False
-
-    def password_modifier(new_value):
-        global rtsp_password
-        if new_value is not None and len(new_value) > 0:
-            rtsp_password = new_value
-            return True
-        else:
-            return False
-
-    def ip_modifier(new_value):
-        global ip_address
-        if new_value is not None and len(new_value) > 0:
-            ip_address = new_value
-            return True
-        else:
-            return False
-
-    def port_modifier(new_value):
-        global access_port
-        if int(new_value) in range(0, 10000):
-            access_port = new_value
-            return True
-        else:
-            return False
-
-    def device_number_modifier(new_value):
-        global device_number
-        if new_value is not None and len(new_value) > 0:
-            device_number = new_value
-            return True
-        else:
-            return False
-
-    modify_user = username_modifier(new_username)
-    modify_pass = password_modifier(new_password)
-    modify_ip = ip_modifier(new_ip)
-    modify_port = port_modifier(new_port)
-    modify_dev_no = device_number_modifier(new_device_number)
-
-    return modify_user, modify_pass, modify_ip, modify_port, modify_dev_no
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 # Main Program - Using PyQt5.uic to load the GUI
 app = QApplication(sys.argv)
 
@@ -1448,11 +1581,13 @@ window.addWidget(window_show_result)
 
 window.setWindowTitle("Image Calibration")
 window.addWidget(window_define_parking_lot)
-window.setWindowIcon(QtGui.QIcon("{}\\icons\\main_program_icon.png".format(gui_dir)))
+window.setWindowIcon(QtGui.QIcon("{}/icons/main_program_icon.png".format(gui_dir)))
 window.setCurrentWidget(window_starting)
 
 window.setFixedWidth(1280)
 window.setFixedHeight(720)
 window.show()
+
+test_calibration_control_on()
 
 app.exec_()

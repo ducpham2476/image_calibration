@@ -31,8 +31,9 @@ def find_landmark(image_data):
 	image_mask = cv2.inRange(image_hsv, im_lower, im_upper)
 	image_mask = cv2.morphologyEx(image_mask, cv2.MORPH_OPEN, kernel)
 	image_mask = cv2.dilate(image_mask, kernel, iterations=2)
-	# cv2.imshow("Image mask", image_mask)
-	# cv2.waitKey()
+	image_mask = cv2.dilate(image_mask, kernel, iterations=2)
+	cv2.imshow("Image mask", image_mask)
+	cv2.waitKey()
 	#
 	# # Debug:
 	# image_mask_show = image_mask
@@ -51,22 +52,22 @@ def find_landmark(image_data):
 		# Define contour bounding box
 		x, y, w, h = cv2.boundingRect(c)
 		# Defined range for landmark 1
-		if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (20 < w < 70) and (15 < h < 60):
+		if (210 < (x + (w // 2)) < 770) and (250 < (y + (h // 2)) < 650) and (10 < w < 70) and (7 < h < 60):
 			current_x[1] = x + (w // 2)
 			current_y[1] = y + (h // 2)
 			current_status[1] = current_status[1] + 1
 		# Defined range for landmarks 2
-		elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (20 < w < 70) and (15 < h < 60):
+		elif (880 < (x + (w // 2)) < 1430) and (260 < (y + (h // 2)) < 650) and (10 < w < 70) and (7 < h < 60):
 			current_x[2] = x + (w // 2)
 			current_y[2] = y + (h // 2)
 			current_status[2] = current_status[2] + 1
 		# Defined range for landmarks 3
-		elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (20 < w < 80) and (25 < h < 60):
+		elif (30 < (x + (w // 2)) < 580) and (500 < (y + (h // 2)) < 960) and (15 < w < 80) and (10 < h < 60):
 			current_x[3] = x + (w // 2)
 			current_y[3] = y + (h // 2)
 			current_status[3] = current_status[3] + 1
 		# Defined range for landmarks 4
-		elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (20 < w < 90) and (25 < h < 90):
+		elif (950 < (x + (w // 2)) < 1510) and (540 < (y + (h // 2)) < 1010) and (15 < w < 90) and (10 < h < 90):
 			current_x[4] = x + (w // 2)
 			current_y[4] = y + (h // 2)
 			current_status[4] = current_status[4] + 1
@@ -108,7 +109,7 @@ def get_coordinate_std_file(input_path, input_name):
 		y_coord.append(0)
 
 	# Determine log file path
-	file_path = "{}\\data_process\\{}\\log_files\\{}".format(input_path, input_name, file_name)
+	file_path = "{}/data_process/{}/log_files/{}".format(input_path, input_name, file_name)
 	file = open(file_path, 'r+')
 
 	# Get separate lines from log file
@@ -191,7 +192,7 @@ def landmark_definition(image_data):
 
 # Test code
 # image = cv2.imread(
-# 	"D:\\PL_GUI\\data_process\\C9\\org\\org_C9_2022-06-02-15-53-08.jpg")
+# 	"D:/PL_GUI/data_new/select_reference_image/ch01_00000000003024800.jpg")
 # status, pos_x, pos_y = find_landmark(image)
 # print(status)
 # print(pos_x)

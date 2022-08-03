@@ -24,7 +24,8 @@ def image_comparison(reference_image, calibrated_image, write_path):
 
 
 # Image difference function, calculates the difference of 2 input images by subtracting one image to the other one
-def image_difference(reference_image, calibrated_image, write_path, start_roi_x, start_roi_y, end_roi_x, end_roi_y):
+def image_difference(reference_image, calibrated_image, write_path, binary_write_path, image_name,
+                     start_roi_x, start_roi_y, end_roi_x, end_roi_y):
     # Read in reference image and calibrated image
     reference_data = cv2.imread(reference_image)
     calibrated_data = cv2.imread(calibrated_image)
@@ -50,6 +51,7 @@ def image_difference(reference_image, calibrated_image, write_path, start_roi_x,
         return -1
     # Write temporary binary difference image for display
     cv2.imwrite(os.path.join(write_path, "temp_difference.jpg"), binary_difference)
+    cv2.imwrite(os.path.join(binary_write_path, "{}_{}.jpg".format(image_name, "bin_diff")), binary_difference)
 
     return round(matching_rate, 3)
 
@@ -77,8 +79,19 @@ def image_difference(reference_image, calibrated_image, write_path, start_roi_x,
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Function test
-# original_image = "D:\\original_test.jpg"
-# standard_image = "D:\\standard_test.jpg"
+# original_image = "D:/original_test.jpg"
+# standard_image = "D:/standard_test.jpg"
 #
-# matching_rate = image_difference(standard_image, original_image, "D:\\result")
+# matching_rate = image_difference(standard_image, original_image, "D:/result")
 # ----------------------------------------------------------------------------------------------------------------------
+# image_1 = "D:/image_1.jpg"
+# image_2 = "D:/image_2.jpg"
+#
+# value = image_difference(image_1, image_2,
+#                          write_path="D:/",
+#                          binary_write_path="D:/",
+#                          image_name="test",
+#                          start_roi_x=0,
+#                          start_roi_y=0,
+#                          end_roi_x=1920,
+#                          end_roi_y=1080)

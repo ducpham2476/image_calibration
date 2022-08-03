@@ -7,7 +7,7 @@ from datetime import datetime as dt
 
 # Create data top working directory
 def create_data_process(parent_path):
-    if not path.exists(parent_path + "\\data_process"):
+    if not path.exists(parent_path + "/data_process"):
         os.mkdir("data_process")
         # print("Data directory created!")
 
@@ -16,12 +16,12 @@ def create_data_process(parent_path):
 def folder_manip(parent_path, input_name):
     # Debug: Data parent working directory
     # print(parent_path)
-    # Debug: Create .\\data_process directory for test, in case the directory is yet to exist
-    # if not path.exists(parent_path + "\\data_process"):
+    # Debug: Create ./data_process directory for test, in case the directory is yet to exist
+    # if not path.exists(parent_path + "/data_process"):
     #     os.mkdir("data_process")
 
     # Move to data top directory
-    os.chdir(parent_path + "\\data_process")
+    os.chdir(parent_path + "/data_process")
 
     # Debug: Print the parent folder name
     # print(path_parent)
@@ -38,16 +38,17 @@ def folder_manip(parent_path, input_name):
 
     # Create folder with name
     folder_make(input_name)
-    os.chdir(".\\{}".format(input_name))
+    os.chdir("./{}".format(input_name))
     # Create sub-directories
     folder_make("std")
     folder_make("org")
     folder_make("calib")
-    folder_make("log_files")
+    # folder_make("log_files")
     folder_make("temp")
 
     # Return the folder pointer to main folder
     os.chdir(parent_path)
+    folder_make("debug")
     # Debug: Print current working directory
     # print(os.getcwd())
 
@@ -55,8 +56,8 @@ def folder_manip(parent_path, input_name):
 
 
 def create_parking_lot_manage(parent_path):
-    if not path.isfile(parent_path + "\\available_parking_lot.txt"):
-        f = open("{}\\available_parking_lot.txt".format(parent_path), "w")
+    if not path.isfile(parent_path + "/available_parking_lot.txt"):
+        f = open("{}/available_parking_lot.txt".format(parent_path), "w")
         f.close()
         # Debug: Print if the file is created
         # print("Parking lot list created!")
@@ -65,8 +66,8 @@ def create_parking_lot_manage(parent_path):
         # print("Parking lot list already existed!")
         pass
 
-    if not path.isfile(parent_path + "\\add_temporary_parking_lot.txt"):
-        f_add_temp_parking_lot = open("{}\\add_temporary_parking_lot.txt".format(parent_path), "w")
+    if not path.isfile(parent_path + "/add_temporary_parking_lot.txt"):
+        f_add_temp_parking_lot = open("{}/add_temporary_parking_lot.txt".format(parent_path), "w")
         f_add_temp_parking_lot.close()
         # Debug: Print if the file is created
         # print("Need to add parking lots container created!")
@@ -78,7 +79,7 @@ def create_parking_lot_manage(parent_path):
 
 # Create required working files
 def file_manip(parent_path, input_name):                # Making log files for future analysis
-    os.chdir("{}\\data_process\\{}".format(parent_path, input_name))
+    os.chdir("{}/data_process/{}".format(parent_path, input_name))
 
     # Debug: Print working directory
     # print(parent_path)
@@ -101,10 +102,10 @@ def file_manip(parent_path, input_name):                # Making log files for f
     # file_make("avail_parking_lot.txt")
 
     # Create files to store parking lot data
-    os.chdir(".\\log_files")
-    file_make("01_std_log.csv")
-    file_make("02_org_log.csv")
-    file_make("03_calib_log.csv")
+    # os.chdir("./log_files")
+    # file_make("01_std_log.csv")
+    # file_make("02_org_log.csv")
+    # file_make("03_calib_log.csv")
 
     os.chdir(parent_path)
 
@@ -117,8 +118,8 @@ def file_open_avail_parking_lot(parent_path):
 
     # Open file contains defined parking lot name
     # Avoid using static addresses
-    f_avail_parking_lot = open(parent_path + "\\data_process\\available_parking_lot.txt", 'r+')
-    if os.stat(parent_path + "\\data_process\\available_parking_lot.txt").st_size == 0:
+    f_avail_parking_lot = open(parent_path + "/data_process/available_parking_lot.txt", 'r+')
+    if os.stat(parent_path + "/data_process/available_parking_lot.txt").st_size == 0:
         # Indicates if the parking lot is defined or not. If not, halt the processing program
         file_flag = True  # Not defined value
         avail_parking_lot = ""
@@ -150,14 +151,14 @@ def file_open_avail_parking_lot(parent_path):
 def file_append_avail_parking_lot(parent_path, new_parking_lot_name):
     # Initiate values:
     # Avoid using static addresses
-    f_avail_parking_lot = open("{}\\data_process\\available_parking_lot.txt".format(parent_path), 'a+')
+    f_avail_parking_lot = open("{}/data_process/available_parking_lot.txt".format(parent_path), 'a+')
     f_avail_parking_lot.write(new_parking_lot_name)
     f_avail_parking_lot.write("\n")
     f_avail_parking_lot.close()
 
 
 def file_append(parent_path, input_name, destination, name_of_file, string):
-    f_append_file = open("{}\\data_process\\{}\\{}\\{}".format(parent_path,
+    f_append_file = open("{}/data_process/{}/{}/{}".format(parent_path,
                                                                input_name,
                                                                destination,
                                                                name_of_file), '+a')
@@ -167,12 +168,12 @@ def file_append(parent_path, input_name, destination, name_of_file, string):
 
 
 def file_clear_contents(parent_path, input_name, name_of_file):
-    f_clear_file = open("{}\\data_process\\{}\\log_files\\{}".format(parent_path, input_name, name_of_file), 'w+')
+    f_clear_file = open("{}/data_process/{}/log_files/{}".format(parent_path, input_name, name_of_file), 'w+')
     f_clear_file.close()
 
 
 def file_clear_specific_content(parent_path, file_destination, delete_string):
-    file_path = "{}\\data_process\\{}".format(parent_path, file_destination)
+    file_path = "{}/data_process/{}".format(parent_path, file_destination)
     delete_string = delete_string + "\n"
     with open(file_path, "r+") as f_delete_spec_content:
         read_content = f_delete_spec_content.readlines()
@@ -185,7 +186,7 @@ def file_clear_specific_content(parent_path, file_destination, delete_string):
 
 def check_defined_parking_lot(parent_path, input_name):
     defined_flag = False
-    file_path = "{}\\data_process\\{}\\defined_parking_lot.txt".format(parent_path, input_name)
+    file_path = "{}/data_process/{}/defined_parking_lot.txt".format(parent_path, input_name)
     if os.stat(file_path).st_size != 0:
         defined_flag = True
     else:
@@ -195,7 +196,7 @@ def check_defined_parking_lot(parent_path, input_name):
 
 
 def write_data_to_log_file(parent_path, input_name, name_of_file, input_string):
-    file_path = parent_path + "\\data_process\\{}\\log_files\\{}".format(input_name, name_of_file)
+    file_path = parent_path + "/data_process/{}/log_files/{}".format(input_name, name_of_file)
     if os.stat(file_path).st_size == 0:
         file = open(file_path, 'a+')
         file.write("Image name,x1,y1,x2,y2,x3,y3,x4,y4\n")
@@ -265,3 +266,11 @@ def remove_all_contents(address):
             break
     # Remove the original top address
     os.rmdir(address)
+
+
+# Get image name from image path
+def get_image_name(image_path):
+    image_name_list = image_path.split("/")
+    image_name_list_length = len(image_name_list)
+
+    return image_name_list[image_name_list_length - 1]

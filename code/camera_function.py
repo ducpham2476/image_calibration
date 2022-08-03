@@ -5,6 +5,8 @@ import os
 import cv2
 # Import folder/file manipulation functions
 import folder_file_manipulation as ff_manip
+# Import asynchronous library for function timing control
+import asyncio
 
 
 # Define camera functions
@@ -14,7 +16,7 @@ def create_camera(username, password, ip, port, device_no):
 	return rtsp
 
 
-def image_capture(rtsp):
+async def image_capture(rtsp):
 	# Initiate video capture & take image frame
 	capture = cv2.VideoCapture()
 	capture.open(rtsp)
@@ -34,7 +36,7 @@ def image_capture(rtsp):
 
 def image_save_path(path, input_name, image_type):
 	# Define image save path:
-	img_save_path = "{}\\data_process\\{}\\{}".format(path, input_name, image_type)
+	img_save_path = "{}/data_process/{}/{}".format(path, input_name, image_type)
 	# Debug:
 	# print(img_save_path)
 
@@ -104,3 +106,20 @@ def auto_run_camera_capture(rtsp, parent, input_parking_lot):
 # duration = 60
 # # Execute main function!
 # main_camera_function(parent_path, parking_lot, img_type)
+
+
+# Test code
+# camera_rtsp = create_camera(username='admin', password='bk123456', ip='192.168.30.15', port='554', device_no='01')
+#
+#
+# async def main():
+# 	try:
+# 		result = await asyncio.wait_for(image_capture(camera_rtsp), timeout=1)
+# 		print("Function returned successfully!")
+# 	except asyncio.TimeoutError:
+# 		print("Timeout!")
+#
+#
+# loop = asyncio.get_event_loop()
+# loop.run_until_complete(main())
+# loop.close()
