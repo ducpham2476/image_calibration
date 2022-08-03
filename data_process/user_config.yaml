@@ -1,0 +1,10 @@
+- configuration: user
+- username: admin
+- password: bk123456
+- ip: 192.168.30.115
+- port: 554
+- device number: '01'
+- delay time: 10
+- test calibration: false
+- write debug info: false
+- debug file location: D:/PL_GUI/debug
